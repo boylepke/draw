@@ -428,7 +428,7 @@ function xoTap(cx,cy){if(!gameActive||!xoMyTurn||xoGameOver)return;const rect=xo
 // ════════════════════════════════════════════════════════════════
 //  TORPEDO TAB
 // ════════════════════════════════════════════════════════════════
-const TPCOLS=50, TPROWS=50;
+const TPCOLS=30, TPROWS=30;
 const TP_SIDEBAR_W = 140;
 
 // Ship definitions: [name, emoji, baseCells]
@@ -652,8 +652,8 @@ function tpBuildSidebar(){
     tile.className='tp-ship-tile'+(tpHeldType===i?' sel':'')+(tpPlaced[i]?' placed':'');
     tile.id='tp-tile-'+i;
 
-    // Mini preview canvas
-    const cells=ship.base;
+    // Mini preview canvas — show rotated shape when this ship is selected
+    const cells = (tpHeldType===i) ? tpRotateCells(ship.base, tpHeldRot) : ship.base;
     const maxR=Math.max(...cells.map(([r])=>r))+1;
     const maxC=Math.max(...cells.map(([,c])=>c))+1;
     const pxSz=Math.min(12, Math.floor((TP_SIDEBAR_W-20)/(maxC||1)));
@@ -743,7 +743,77 @@ tpC.addEventListener('mouseup',    e=>{const r=tpC.getBoundingClientRect();tpCan
 function tpRotate(){
   if(tpHeldType<0) return;
   tpHeldRot=(tpHeldRot+1)%4;
+  // Give a default hover position so the canvas preview shows even before touching the grid
+  if(tpHoverR===null){ tpHoverR=Math.floor(TPROWS/2); tpHoverC=Math.floor(TPCOLS/4); }
+  tpUpdateSidebar();
   tpRedraw();
+}
+
+// ── Explosion animation ──────────────────────────────────────────
+let tpExplosions=[], tpAnimating=false;
+
+function tpAnimateExplosion(cells){
+  const particles=[];
+  cells.forEach(([r,c])=>{
+    const cx=c*tpCS+tpCS/2, cy=r*tpCS+tpCS/2;
+    const n=Math.max(6, Math.floor(tpCS*1.2));
+    for(let i=0;i<n;i++){
+      const ang=Math.random()*Math.PI*2, spd=0.8+Math.random()*tpCS*0.38;
+      particles.push({
+        x:cx, y:cy,
+        vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd - Math.random()*1.5,
+        r:Math.max(1.5, tpCS*0.1+Math.random()*tpCS*0.18),
+        life:1,
+        decay:0.018+Math.random()*0.028,
+        color:Math.random()<0.55?'#ff4400':Math.random()<0.5?'#ffaa00':'#ff8800',
+      });
+    }
+  });
+  tpExplosions.push({cells, particles, t:0});
+  if(!tpAnimating) tpRunAnimation();
+}
+
+function tpRunAnimation(){
+  tpAnimating=true;
+  function frame(){
+    if(tpExplosions.length===0){ tpAnimating=false; tpRedraw(); return; }
+    // Redraw grid base
+    tpRedraw();
+    // Draw each active explosion on top
+    tpExplosions.forEach(exp=>{
+      // Flash cells bright orange for first ~12 frames
+      if(exp.t<12){
+        const fa=Math.max(0,(12-exp.t)/12)*0.85;
+        exp.cells.forEach(([r,c])=>{
+          tpCtx.save();
+          tpCtx.shadowColor='#ff6600'; tpCtx.shadowBlur=tpCS*2;
+          tpCtx.globalAlpha=fa;
+          tpCtx.fillStyle='#ff6600';
+          tpCtx.fillRect(c*tpCS,r*tpCS,tpCS,tpCS);
+          tpCtx.restore();
+        });
+      }
+      // Particles
+      exp.particles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy;
+        p.vy+=0.12;
+        p.vx*=0.97;
+        p.life-=p.decay;
+        if(p.life<=0) return;
+        tpCtx.save();
+        tpCtx.globalAlpha=p.life;
+        tpCtx.shadowColor=p.color; tpCtx.shadowBlur=p.r*2.5;
+        tpCtx.fillStyle=p.color;
+        tpCtx.beginPath(); tpCtx.arc(p.x,p.y,p.r,0,Math.PI*2); tpCtx.fill();
+        tpCtx.restore();
+      });
+      exp.particles=exp.particles.filter(p=>p.life>0);
+      exp.t++;
+    });
+    tpExplosions=tpExplosions.filter(exp=>exp.particles.length>0||exp.t<15);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
 // ── Battle ───────────────────────────────────────────────────────
@@ -768,7 +838,8 @@ function tpReceiveFire(r,c){
     }
   }
   const gameOver = tpMyFleet.every(s=>s.destroyed);
-  send({type:'tp_result',r,c,hit,destroyed,gameOver});
+  const destroyedCells = (destroyed && !gameOver) ? tpMyFleet[idx]?.cells : (destroyed ? tpMyFleet[idx]?.cells : null);
+  send({type:'tp_result', r, c, hit, destroyed, gameOver, destroyedCells: destroyed ? tpMyFleet[idx]?.cells ?? null : null});
   tpMyTurn=true;
   if(activeTab==='torpedo') tpRedraw();
   tpUpdateStatus();
@@ -778,8 +849,20 @@ function tpReceiveFire(r,c){
 function tpReceiveResult(msg){
   const key=`${msg.r},${msg.c}`;
   tpEnemyMap[key]=msg.hit?'hit':'miss';
-  if(msg.destroyed) tpEnemyShipsLeft--;
-  if(activeTab==='torpedo') tpRedraw();
+  if(msg.destroyed){
+    tpEnemyShipsLeft--;
+    // Switch to enemy view so player sees the explosion
+    if(tpView!=='enemy'){ tpSetView('enemy'); }
+    // Mark all destroyed ship cells as hit in enemy map
+    if(msg.destroyedCells){
+      msg.destroyedCells.forEach(([r,c])=>{ tpEnemyMap[`${r},${c}`]='hit'; });
+      tpAnimateExplosion(msg.destroyedCells);
+    } else {
+      tpAnimateExplosion([[msg.r, msg.c]]);
+    }
+  } else {
+    if(activeTab==='torpedo') tpRedraw();
+  }
   if(msg.gameOver) tpShowGameOver(true);
 }
 
@@ -869,6 +952,7 @@ function startGame(host){
   // Gomoku
   xoNextFirst=1; xoMyTurn=host;
   // Torpedo init
+  tpExplosions=[]; tpAnimating=false;
   tpPlaced=Array(6).fill(false);
   tpBuildSidebar();
   resize(); drawPaper(); xoRedraw(); xoUpdateStatus(); tpRedraw();
