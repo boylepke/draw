@@ -3,106 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Draw Together</title>
+<title>Play Together</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; overflow:hidden; touch-action:none; }
-body { font-family:'Nunito','Arial Rounded MT Bold',Arial,sans-serif; background:#f0ebe0; }
-
+body { font-family:'Nunito','Arial Rounded MT Bold',Arial,sans-serif; }
 canvas { position:fixed; left:0; display:block; }
 
+/* ── HUD ── */
 #hud {
-  position:fixed; top:0; left:0; right:0; height:46px; z-index:10;
-  display:none; align-items:center; justify-content:space-between; padding:0 14px;
-  background:rgba(28,20,55,.94); backdrop-filter:blur(12px);
-  border-bottom:1.5px solid rgba(255,255,255,.13);
+  position:fixed; top:0; left:0; right:0; height:52px; z-index:10;
+  display:none; align-items:center; justify-content:space-between; padding:0 8px;
+  background:rgba(18,10,40,.97); backdrop-filter:blur(12px);
+  border-bottom:1.5px solid rgba(255,255,255,.11);
 }
-.ptag {
-  font-size:.78rem; font-weight:800; color:#fff; padding:5px 14px;
-  border-radius:20px; letter-spacing:.04em;
-}
-#hud-title { font-size:.8rem; font-weight:700; color:rgba(255,255,255,.4); }
+.ptag { font-size:.68rem; font-weight:800; color:#fff; padding:4px 9px; border-radius:20px; white-space:nowrap; }
+#tabs { display:flex; gap:4px; }
+.tab { font-size:.75rem; font-weight:800; color:rgba(255,255,255,.38); padding:5px 10px; border-radius:11px; cursor:pointer; user-select:none; border:1.5px solid transparent; transition:all .18s; white-space:nowrap; }
+.tab.active { color:#fff; background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.2); }
 
-#toolbar {
-  position:fixed; bottom:0; left:0; right:0; z-index:10;
-  background:rgba(22,16,50,.96); backdrop-filter:blur(14px);
-  border-top:1.5px solid rgba(255,255,255,.12);
-  padding:9px 10px 13px; display:none; flex-direction:column; gap:8px;
-}
-.trow { display:flex; align-items:center; gap:7px; overflow-x:auto; padding-bottom:1px; flex-wrap:nowrap; }
+/* ── Draw toolbar ── */
+#toolbar { position:fixed; bottom:0; left:0; right:0; z-index:10; background:rgba(22,16,50,.97); backdrop-filter:blur(14px); border-top:1.5px solid rgba(255,255,255,.11); padding:9px 10px 13px; display:none; flex-direction:column; gap:8px; }
+.trow { display:flex; align-items:center; gap:7px; overflow-x:auto; }
 .trow::-webkit-scrollbar { display:none; }
-
-.cswatch {
-  width:32px; height:32px; border-radius:50%; flex-shrink:0;
-  border:3px solid transparent; cursor:pointer; transition:transform .1s;
-}
+.cswatch { width:32px; height:32px; border-radius:50%; flex-shrink:0; border:3px solid transparent; cursor:pointer; transition:transform .1s; }
 .cswatch.sel { border-color:#fff; transform:scale(1.3); box-shadow:0 0 8px rgba(255,255,255,.5); }
-
-.szbtn {
-  border-radius:50%; flex-shrink:0; cursor:pointer; border:2px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center;
-  transition:transform .1s;
-}
+.szbtn { border-radius:50%; flex-shrink:0; cursor:pointer; border:2px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
 .szbtn.sel { border-color:#fff; background:rgba(255,255,255,.28); }
-
-.tbtn {
-  background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.2);
-  color:#fff; border-radius:11px; padding:6px 12px; font-size:.8rem; font-weight:700;
-  cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0;
-  transition:background .1s; user-select:none;
-}
+.tbtn { background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.2); color:#fff; border-radius:11px; padding:6px 12px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; user-select:none; }
 .tbtn.sel { background:rgba(255,255,255,.28); border-color:#fff; }
 .tbtn:active { transform:scale(.93); }
-
-.stamp {
-  font-size:1.45rem; cursor:pointer; flex-shrink:0; line-height:1;
-  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
-  border-radius:10px; background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.14);
-  transition:transform .1s; user-select:none;
-}
+.stamp { font-size:1.4rem; cursor:pointer; flex-shrink:0; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.13); user-select:none; }
 .stamp.sel { background:rgba(255,255,255,.28); border-color:#fff; }
 .stamp:active { transform:scale(.85); }
-
-.dv { width:1.5px; height:26px; background:rgba(255,255,255,.16); flex-shrink:0; }
-
-.clrbtn {
-  background:linear-gradient(135deg,#ff4757,#c0392b); border:none;
-  color:#fff; border-radius:11px; padding:6px 14px; font-size:.8rem; font-weight:800;
-  cursor:pointer; font-family:inherit; flex-shrink:0; user-select:none;
-}
+.dv { width:1.5px; height:26px; background:rgba(255,255,255,.15); flex-shrink:0; }
+.clrbtn { background:linear-gradient(135deg,#ff4757,#c0392b); border:none; color:#fff; border-radius:11px; padding:6px 14px; font-size:.8rem; font-weight:800; cursor:pointer; font-family:inherit; flex-shrink:0; user-select:none; }
 .clrbtn:active { transform:scale(.93); }
 
-/* Lobby */
-#lobby {
-  position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:clamp(14px,3.5vw,26px); padding:20px;
-  background:linear-gradient(145deg,#1a0d3a,#0d1f40,#0d1a28);
+/* ── Gomoku panel ── */
+#xo-panel { position:fixed; left:0; right:0; z-index:8; display:none; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(160deg,#12082e,#0b1830); gap:8px; padding:8px 4px; }
+#xo-scores { display:flex; align-items:center; gap:clamp(10px,5vw,36px); }
+.xo-sb { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.xo-sname { font-size:.68rem; font-weight:800; color:rgba(255,255,255,.45); letter-spacing:.05em; }
+.xo-snum  { font-size:clamp(1.6rem,7vw,2.6rem); font-weight:900; color:#fff; line-height:1; }
+.xo-sep   { font-size:1rem; color:rgba(255,255,255,.18); }
+#xo-status { font-size:clamp(.85rem,3.6vw,1.1rem); font-weight:800; color:#fff; text-align:center; min-height:1.4em; padding:0 8px; }
+#xo-canvas { display:block; border-radius:8px; touch-action:none; }
+#xo-again { background:linear-gradient(135deg,#11d68a,#0088cc); border:none; color:#fff; font-family:inherit; font-size:clamp(.9rem,3.5vw,1.1rem); font-weight:800; padding:clamp(10px,2.5vw,14px) clamp(24px,7vw,44px); border-radius:16px; cursor:pointer; box-shadow:0 5px 18px rgba(0,0,0,.4); display:none; }
+#xo-again:active { transform:scale(.95); }
+
+/* ── Torpedo panel ── */
+#tp-panel {
+  position:fixed; left:0; right:0; z-index:8;
+  display:none; flex-direction:column;
+  background:#0a1020; touch-action:none;
 }
+#tp-statusbar {
+  flex-shrink:0; height:40px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 10px; background:rgba(0,0,0,.45); border-bottom:1px solid rgba(255,255,255,.1);
+  gap:8px;
+}
+#tp-status-txt { font-size:.78rem; font-weight:800; color:#fff; flex:1; text-align:center; }
+.tp-viewbtn { font-size:.72rem; font-weight:800; color:rgba(255,255,255,.6); padding:4px 9px; border-radius:9px; border:1.5px solid rgba(255,255,255,.2); background:transparent; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all .15s; }
+.tp-viewbtn.active { color:#fff; background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.4); }
+
+#tp-play-area {
+  flex:1; display:flex; flex-direction:row; overflow:hidden; min-height:0;
+}
+#tp-canvas-wrap {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; position:relative; min-width:0;
+}
+#tp-canvas { display:block; touch-action:none; image-rendering:pixelated; cursor:crosshair; }
+
+/* Sidebar */
+#tp-sidebar {
+  flex-shrink:0; width:140px; background:rgba(0,0,0,.5);
+  border-left:1px solid rgba(255,255,255,.1);
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+  padding:8px 6px 12px;
+  gap:5px;
+}
+#tp-sidebar::-webkit-scrollbar { display:none; }
+.tp-ship-tile {
+  border-radius:8px; border:2px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
+  padding:5px 6px; cursor:pointer; user-select:none; transition:background .12s, border-color .12s;
+  display:flex; flex-direction:column; gap:3px; align-items:center;
+}
+.tp-ship-tile.sel { border-color:#ffe066; background:rgba(255,224,102,.12); }
+.tp-ship-tile.placed { border-color:rgba(255,255,255,.05); background:rgba(255,255,255,.02); opacity:.5; cursor:default; }
+.tp-ship-name { font-size:.6rem; font-weight:700; color:rgba(255,255,255,.55); text-align:center; }
+.tp-ship-preview { display:block; }
+.tp-sidebtns { margin-top:auto; display:flex; flex-direction:column; gap:5px; padding-top:6px; }
+.tp-sbtn { font-family:inherit; font-size:.76rem; font-weight:800; border:none; border-radius:10px; padding:7px 4px; cursor:pointer; width:100%; }
+.tp-sbtn-rot  { background:rgba(255,255,255,.14); color:#fff; }
+.tp-sbtn-ready { background:linear-gradient(135deg,#11d68a,#0088cc); color:#fff; display:none; }
+.tp-sbtn-rot:active, .tp-sbtn-ready:active { transform:scale(.95); }
+
+#tp-gameover {
+  display:none; position:absolute; inset:0; z-index:20;
+  background:rgba(0,0,0,.72); align-items:center; justify-content:center; flex-direction:column;
+  gap:18px;
+}
+#tp-gameover-msg { font-size:clamp(1.4rem,6vw,2.2rem); font-weight:900; color:#fff; text-align:center; }
+#tp-gameover-again { background:linear-gradient(135deg,#11d68a,#0088cc); border:none; color:#fff; font-family:inherit; font-size:1rem; font-weight:800; padding:13px 34px; border-radius:16px; cursor:pointer; }
+#tp-gameover-again:active { transform:scale(.95); }
+
+/* ── Lobby ── */
+#lobby { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(14px,3.5vw,26px); padding:20px; background:linear-gradient(145deg,#1a0d3a,#0d1f40,#0d1a28); }
 .title { font-size:clamp(2.2rem,8vw,4.5rem); font-weight:900; color:#fff; text-align:center; }
-.glass {
-  background:rgba(255,255,255,.1); backdrop-filter:blur(18px);
-  border:1.5px solid rgba(255,255,255,.2); border-radius:26px;
-  padding:clamp(18px,4vw,32px) clamp(22px,5vw,42px);
-  display:flex; flex-direction:column; align-items:center; gap:clamp(12px,2.5vw,18px);
-  width:min(90vw,390px);
-}
-.lbtn {
-  width:100%; padding:clamp(14px,3.5vw,20px); font-size:clamp(1.05rem,3.8vw,1.35rem);
-  font-weight:800; border:none; border-radius:16px; cursor:pointer; font-family:inherit;
-  box-shadow:0 5px 18px rgba(0,0,0,.35); transition:transform .1s;
-}
+.glass { background:rgba(255,255,255,.1); backdrop-filter:blur(18px); border:1.5px solid rgba(255,255,255,.2); border-radius:26px; padding:clamp(18px,4vw,32px) clamp(22px,5vw,42px); display:flex; flex-direction:column; align-items:center; gap:clamp(12px,2.5vw,18px); width:min(90vw,390px); }
+.lbtn { width:100%; padding:clamp(14px,3.5vw,20px); font-size:clamp(1.05rem,3.8vw,1.35rem); font-weight:800; border:none; border-radius:16px; cursor:pointer; font-family:inherit; box-shadow:0 5px 18px rgba(0,0,0,.35); transition:transform .1s; }
 .lbtn:active { transform:scale(.95); }
 .lbtn-host { background:linear-gradient(135deg,#ffbe3b,#ff6a00); color:#fff; }
 .lbtn-join { background:linear-gradient(135deg,#7c5cfc,#d63aec); color:#fff; }
 .lbtn-go   { background:linear-gradient(135deg,#11d68a,#0088cc); color:#fff; }
 .code-big { font-size:clamp(3rem,14vw,5.5rem); font-weight:900; letter-spacing:.18em; color:#ffe066; text-align:center; line-height:1.1; }
 .sub { font-size:clamp(.8rem,2.8vw,1rem); color:rgba(255,255,255,.58); text-align:center; }
-input[type=text] {
-  width:100%; font-size:clamp(2rem,11vw,3.5rem); text-align:center; font-weight:900;
-  letter-spacing:.22em; padding:12px 10px; border-radius:14px;
-  border:2px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12);
-  color:#fff; outline:none; font-family:inherit; caret-color:#ffe066;
-}
+input[type=text] { width:100%; font-size:clamp(2rem,11vw,3.5rem); text-align:center; font-weight:900; letter-spacing:.22em; padding:12px 10px; border-radius:14px; border:2px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12); color:#fff; outline:none; font-family:inherit; caret-color:#ffe066; }
 input[type=text]::placeholder { opacity:.28; }
 #smsg { color:rgba(255,255,255,.55); font-size:.9rem; text-align:center; min-height:1.3em; }
 </style>
@@ -113,7 +131,11 @@ input[type=text]::placeholder { opacity:.28; }
 
 <div id="hud">
   <div class="ptag" id="ptag-me">✏️ You</div>
-  <div id="hud-title">Draw Together</div>
+  <div id="tabs">
+    <div class="tab active" id="tab-draw"     onclick="switchTab('draw')">✏️ Draw</div>
+    <div class="tab"        id="tab-xo"       onclick="switchTab('xo')">⬤ 5 in a row</div>
+    <div class="tab"        id="tab-torpedo"  onclick="switchTab('torpedo')">🚢 Torpedo</div>
+  </div>
   <div class="ptag" id="ptag-them">✏️ Them</div>
 </div>
 
@@ -122,8 +144,43 @@ input[type=text]::placeholder { opacity:.28; }
   <div class="trow" id="row-tools"></div>
 </div>
 
+<div id="xo-panel">
+  <div id="xo-scores">
+    <div class="xo-sb"><div class="xo-sname" id="xo-name-me">YOU</div><div class="xo-snum" id="xo-score-me">0</div></div>
+    <div class="xo-sep">—</div>
+    <div class="xo-sb"><div class="xo-sname" id="xo-name-them">THEM</div><div class="xo-snum" id="xo-score-them">0</div></div>
+  </div>
+  <div id="xo-status">…</div>
+  <canvas id="xo-canvas"></canvas>
+  <button id="xo-again" onclick="xoReset(true)">Play again 🔁</button>
+</div>
+
+<div id="tp-panel">
+  <div id="tp-statusbar">
+    <button class="tp-viewbtn active" id="tp-btn-enemy" onclick="tpSetView('enemy')" style="display:none">🎯 Fire</button>
+    <span id="tp-status-txt">Place your ships</span>
+    <button class="tp-viewbtn" id="tp-btn-mine" onclick="tpSetView('mine')" style="display:none">⚓ My fleet</button>
+  </div>
+  <div id="tp-play-area">
+    <div id="tp-canvas-wrap">
+      <canvas id="tp-canvas"></canvas>
+      <div id="tp-gameover">
+        <div id="tp-gameover-msg">…</div>
+        <button id="tp-gameover-again" onclick="tpReset(true)">Play again 🔁</button>
+      </div>
+    </div>
+    <div id="tp-sidebar">
+      <div id="tp-ships-list"></div>
+      <div class="tp-sidebtns">
+        <button class="tp-sbtn tp-sbtn-rot"   id="tp-rot-btn"   onclick="tpRotate()">⟳ Rotate</button>
+        <button class="tp-sbtn tp-sbtn-ready" id="tp-ready-btn" onclick="tpSendReady()">✓ Ready!</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="lobby">
-  <div class="title">🎨 Draw Together</div>
+  <div class="title">🎨 Play Together</div>
   <div class="glass" id="card">
     <button class="lbtn lbtn-host" id="btn-host">🏠 Host Game</button>
     <button class="lbtn lbtn-join" id="btn-join">📲 Join Game</button>
@@ -133,315 +190,611 @@ input[type=text]::placeholder { opacity:.28; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 <script>
-// ─── Layout constants ────────────────────────────────────────────────────────
-const HUD_H = 46;
-const TB_H  = 96;
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
-let W, CH; // canvas width and height
+// ════════════════════════════════════════════════════════════════
+//  LAYOUT & TAB SWITCHING
+// ════════════════════════════════════════════════════════════════
+const HUD_H = 52, TB_H = 96;
+const drawCanvas = document.getElementById('c');
+const ctx        = drawCanvas.getContext('2d');
+let W, CH, gameActive = false, amHost = false, activeTab = 'draw';
 
 function resize() {
-  W  = canvas.width  = window.innerWidth;
-  CH = canvas.height = window.innerHeight - (gameActive ? HUD_H + TB_H : 0);
-  canvas.style.top = gameActive ? HUD_H + 'px' : '0';
-  if (gameActive) redrawAll();
+  W  = drawCanvas.width  = window.innerWidth;
+  CH = drawCanvas.height = window.innerHeight - (gameActive ? HUD_H + TB_H : 0);
+  drawCanvas.style.top = gameActive ? HUD_H + 'px' : '0';
+  const xp = document.getElementById('xo-panel');
+  xp.style.top    = HUD_H + 'px';
+  xp.style.height = (window.innerHeight - HUD_H) + 'px';
+  const tp = document.getElementById('tp-panel');
+  tp.style.top    = HUD_H + 'px';
+  tp.style.height = (window.innerHeight - HUD_H) + 'px';
+  if (gameActive) {
+    redrawAll();
+    if (activeTab === 'xo')      xoRedraw();
+    if (activeTab === 'torpedo') tpRedraw();
+  }
 }
 window.addEventListener('resize', resize);
 
-// ─── Drawing palette ─────────────────────────────────────────────────────────
-const PALETTE = [
-  '#111111','#ffffff','#ff4444','#ff8c00','#ffd700',
-  '#44cc44','#00bcd4','#2196f3','#9c27b0','#e91e8c',
-  '#795548','#607d8b'
-];
-const SIZES   = [6, 16, 34];
-const STAMPS  = ['⭐','❤️','🌈','🌸','🐱','🦋','🎉','🍦','🐶','🌟'];
-const PAPER   = '#f8f3ea';
-
-let penColor  = '#2196f3'; // default blue
-let penSize   = SIZES[1];
-let eraserOn  = false;
-let stampMode = null;
-
-// ─── Ops log (for redraw) ─────────────────────────────────────────────────────
-let ops = []; // {type:'seg'|'stamp'|'clear', ...}
-
-// ─── Network ─────────────────────────────────────────────────────────────────
-let peer, conn, gameActive = false;
-
-function send(msg) {
-  try { conn && conn.open && conn.send(JSON.stringify(msg)); } catch(e) {}
+function switchTab(tab) {
+  activeTab = tab;
+  ['draw','xo','torpedo'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===tab));
+  drawCanvas.style.display                           = tab==='draw'    ? 'block' : 'none';
+  document.getElementById('toolbar').style.display  = tab==='draw'    ? 'flex'  : 'none';
+  document.getElementById('xo-panel').style.display = tab==='xo'      ? 'flex'  : 'none';
+  document.getElementById('tp-panel').style.display = tab==='torpedo' ? 'flex'  : 'none';
+  if (tab==='xo')      { resize(); xoRedraw(); }
+  if (tab==='torpedo') { resize(); tpRedraw(); }
 }
+
+// ════════════════════════════════════════════════════════════════
+//  NETWORK
+// ════════════════════════════════════════════════════════════════
+let peer, conn;
+function send(msg) { try { conn && conn.open && conn.send(JSON.stringify(msg)); } catch(e) {} }
 function onMessage(raw) {
   let msg; try { msg = JSON.parse(raw); } catch(e) { return; }
-  if      (msg.type === 'seg')   applySeg(msg);
-  else if (msg.type === 'stamp') applyStamp(msg);
-  else if (msg.type === 'clear') applyClear();
+  // Draw
+  if (msg.type==='seg')        { applySeg(msg); return; }
+  if (msg.type==='stamp')      { applyStamp(msg); return; }
+  if (msg.type==='clear')      { applyClear(); return; }
+  // Gomoku
+  if (msg.type==='xo_move')   { xoApplyMove(msg.cell, false); return; }
+  if (msg.type==='xo_reset')  { xoReset(false); return; }
+  // Torpedo
+  if (msg.type==='tp_ready')  { tpTheyReady=true;  tpCheckBothReady(); return; }
+  if (msg.type==='tp_fire')   { tpReceiveFire(msg.r, msg.c); return; }
+  if (msg.type==='tp_result') { tpReceiveResult(msg); return; }
+  if (msg.type==='tp_reset')  { tpReset(false); return; }
 }
 
-// ─── Drawing operations ───────────────────────────────────────────────────────
-const PAPER_DOTS_SPACING = 30;
+// ════════════════════════════════════════════════════════════════
+//  DRAWING TAB
+// ════════════════════════════════════════════════════════════════
+const PALETTE=['#111111','#ffffff','#ff4444','#ff8c00','#ffd700','#44cc44','#00bcd4','#2196f3','#9c27b0','#e91e8c','#795548','#607d8b'];
+const SIZES=[6,16,34], STAMPS=['⭐','❤️','🌈','🌸','🐱','🦋','🎉','🍦','🐶','🌟'], PAPER='#f8f3ea';
+let penColor='#2196f3', penSize=SIZES[1], eraserOn=false, stampMode=null, ops=[];
 
-function drawPaper() {
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(0, 0, W, CH);
-  ctx.fillStyle = 'rgba(0,0,0,.05)';
-  for (let x = PAPER_DOTS_SPACING; x < W;  x += PAPER_DOTS_SPACING)
-  for (let y = PAPER_DOTS_SPACING; y < CH; y += PAPER_DOTS_SPACING) {
-    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
-  }
-}
+function drawPaper(){ ctx.fillStyle=PAPER;ctx.fillRect(0,0,W,CH);ctx.fillStyle='rgba(0,0,0,.05)';for(let x=30;x<W;x+=30)for(let y=30;y<CH;y+=30){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();} }
+function strokeSeg(x1,y1,x2,y2,color,size,erase){ ctx.save();ctx.lineWidth=size;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=erase?PAPER:color;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore(); }
+function strokeStamp(x,y,emoji,size){ ctx.save();ctx.font=`${size}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(emoji,x,y);ctx.restore(); }
+function applySeg(op)  { ops.push(op); strokeSeg(op.x1*W,op.y1*CH,op.x2*W,op.y2*CH,op.color,op.size,op.erase); }
+function applyStamp(op){ ops.push(op); strokeStamp(op.x*W,op.y*CH,op.emoji,op.sz); }
+function applyClear()  { ops=[];ctx.clearRect(0,0,W,CH);drawPaper(); }
+function redrawAll()   { ctx.clearRect(0,0,W,CH);drawPaper();ops.forEach(op=>{ if(op.type==='seg')strokeSeg(op.x1*W,op.y1*CH,op.x2*W,op.y2*CH,op.color,op.size,op.erase);if(op.type==='stamp')strokeStamp(op.x*W,op.y*CH,op.emoji,op.sz); }); }
 
-function strokeSeg(x1, y1, x2, y2, color, size, erase) {
-  ctx.save();
-  ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  if (erase) {
-    ctx.strokeStyle = PAPER; // paint over with paper color
-  } else {
-    ctx.strokeStyle = color;
-  }
-  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-  ctx.restore();
-}
+let lastPt=null,primId=null;
+function inDraw(y){ return activeTab==='draw'&&y>=HUD_H&&y<=HUD_H+CH; }
+function pdDown(cx,cy){ if(!gameActive||!inDraw(cy))return;const y=cy-HUD_H;if(stampMode){const op={type:'stamp',x:cx/W,y:y/CH,emoji:stampMode,sz:penSize*2.5};applyStamp(op);send(op);return;}lastPt={x:cx,y}; }
+function pdMove(cx,cy){ if(!gameActive||!lastPt||stampMode||!inDraw(cy))return;const y=cy-HUD_H;const op={type:'seg',x1:lastPt.x/W,y1:lastPt.y/CH,x2:cx/W,y2:y/CH,color:penColor,size:eraserOn?penSize*2.8:penSize,erase:eraserOn};applySeg(op);send(op);lastPt={x:cx,y}; }
+function pdUp(){ lastPt=null;primId=null; }
+drawCanvas.addEventListener('touchstart',e=>{e.preventDefault();if(primId===null){const t=e.changedTouches[0];primId=t.identifier;pdDown(t.clientX,t.clientY);}},{passive:false});
+drawCanvas.addEventListener('touchmove', e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===primId){pdMove(t.clientX,t.clientY);break;}},{passive:false});
+drawCanvas.addEventListener('touchend',  e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===primId){pdUp();break;}},{passive:false});
+drawCanvas.addEventListener('mousedown', e=>pdDown(e.clientX,e.clientY));
+drawCanvas.addEventListener('mousemove', e=>{if(e.buttons)pdMove(e.clientX,e.clientY);});
+drawCanvas.addEventListener('mouseup',   pdUp);
 
-function strokeStamp(x, y, emoji, size) {
-  ctx.save();
-  ctx.font = `${size}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, x, y);
-  ctx.restore();
-}
-
-function applySeg(op) {
-  ops.push(op);
-  strokeSeg(op.x1*W, op.y1*CH, op.x2*W, op.y2*CH, op.color, op.size, op.erase);
-}
-
-function applyStamp(op) {
-  ops.push(op);
-  strokeStamp(op.x*W, op.y*CH, op.emoji, op.sz);
-}
-
-function applyClear() {
-  ops = [];
-  ctx.clearRect(0, 0, W, CH);
-  drawPaper();
-}
-
-function redrawAll() {
-  ctx.clearRect(0, 0, W, CH);
-  drawPaper();
-  ops.forEach(op => {
-    if (op.type === 'seg')   strokeSeg(op.x1*W,op.y1*CH,op.x2*W,op.y2*CH,op.color,op.size,op.erase);
-    if (op.type === 'stamp') strokeStamp(op.x*W,op.y*CH,op.emoji,op.sz);
-  });
-}
-
-// ─── Touch → canvas coordinate transform ─────────────────────────────────────
-function cy(clientY) { return clientY - HUD_H; }
-function inCanvas(clientY) { return clientY >= HUD_H && clientY <= HUD_H + CH; }
-
-let lastPt = null, primaryTouchId = null;
-
-function pointerDown(cx, clientY) {
-  if (!gameActive || !inCanvas(clientY)) return;
-  const y = cy(clientY);
-  if (stampMode) {
-    const op = { type:'stamp', x:cx/W, y:y/CH, emoji:stampMode, sz: penSize * 2.5 };
-    applyStamp(op); send(op);
-    return;
-  }
-  lastPt = { x:cx, y };
-}
-
-function pointerMove(cx, clientY) {
-  if (!gameActive || !lastPt || stampMode || !inCanvas(clientY)) return;
-  const y = cy(clientY);
-  const op = {
-    type:'seg',
-    x1: lastPt.x/W, y1: lastPt.y/CH,
-    x2: cx/W,       y2: y/CH,
-    color: penColor,
-    size:  eraserOn ? penSize * 2.8 : penSize,
-    erase: eraserOn
-  };
-  applySeg(op); send(op);
-  lastPt = { x:cx, y };
-}
-
-function pointerUp() { lastPt = null; primaryTouchId = null; }
-
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (primaryTouchId === null) {
-    const t = e.changedTouches[0];
-    primaryTouchId = t.identifier;
-    pointerDown(t.clientX, t.clientY);
-  }
-}, { passive:false });
-
-canvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  for (const t of e.changedTouches) {
-    if (t.identifier === primaryTouchId) { pointerMove(t.clientX, t.clientY); break; }
-  }
-}, { passive:false });
-
-canvas.addEventListener('touchend', e => {
-  e.preventDefault();
-  for (const t of e.changedTouches) {
-    if (t.identifier === primaryTouchId) { pointerUp(); break; }
-  }
-}, { passive:false });
-
-canvas.addEventListener('mousedown', e => pointerDown(e.clientX, e.clientY));
-canvas.addEventListener('mousemove', e => { if (e.buttons) pointerMove(e.clientX, e.clientY); });
-canvas.addEventListener('mouseup', pointerUp);
-
-// ─── Toolbar builder ──────────────────────────────────────────────────────────
-function buildToolbar() {
-  // Row 1: colors
-  const cr = document.getElementById('row-colors');
-  PALETTE.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'cswatch' + (c === penColor ? ' sel' : '');
-    el.style.background = c;
-    if (c === '#ffffff') el.style.boxShadow = 'inset 0 0 0 1.5px rgba(0,0,0,.25)';
-    el.addEventListener('pointerdown', () => {
-      penColor = c; eraserOn = false; stampMode = null;
-      cr.querySelectorAll('.cswatch').forEach(e => e.classList.remove('sel'));
-      el.classList.add('sel');
-      syncToolState();
-    });
+function buildToolbar(){
+  const cr=document.getElementById('row-colors');
+  PALETTE.forEach(c=>{
+    const el=document.createElement('div');el.className='cswatch'+(c===penColor?' sel':'');el.style.background=c;
+    if(c==='#ffffff')el.style.boxShadow='inset 0 0 0 1.5px rgba(0,0,0,.25)';
+    el.addEventListener('pointerdown',()=>{penColor=c;eraserOn=false;stampMode=null;cr.querySelectorAll('.cswatch').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');syncToolState();});
     cr.appendChild(el);
   });
+  const tr=document.getElementById('row-tools');
+  SIZES.forEach(s=>{
+    const el=document.createElement('div');el.className='szbtn'+(s===penSize?' sel':'');const d=s*0.65+16;el.style.cssText=`width:${d}px;height:${d}px;`;
+    el.innerHTML=`<div style="width:${Math.max(3,s*.5)}px;height:${Math.max(3,s*.5)}px;border-radius:50%;background:rgba(255,255,255,.85)"></div>`;
+    el.addEventListener('pointerdown',()=>{penSize=s;tr.querySelectorAll('.szbtn').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');});tr.appendChild(el);
+  });
+  const dv1=document.createElement('div');dv1.className='dv';tr.appendChild(dv1);
+  const erBtn=document.createElement('button');erBtn.className='tbtn';erBtn.id='eraser-btn';erBtn.textContent='🧹 Erase';
+  erBtn.addEventListener('pointerdown',()=>{eraserOn=!eraserOn;stampMode=null;syncToolState();});tr.appendChild(erBtn);
+  const dv2=document.createElement('div');dv2.className='dv';tr.appendChild(dv2);
+  STAMPS.forEach(em=>{
+    const el=document.createElement('div');el.className='stamp';el.textContent=em;
+    el.addEventListener('pointerdown',()=>{stampMode=stampMode===em?null:em;eraserOn=false;syncToolState();});tr.appendChild(el);
+  });
+  const dv3=document.createElement('div');dv3.className='dv';tr.appendChild(dv3);
+  const clrBtn=document.createElement('button');clrBtn.className='clrbtn';clrBtn.textContent='🗑️ Clear';
+  clrBtn.addEventListener('pointerdown',e=>{e.stopPropagation();if(confirm('Clear the whole drawing?')){applyClear();send({type:'clear'});}});tr.appendChild(clrBtn);
+}
+function syncToolState(){ const eb=document.getElementById('eraser-btn');if(eb)eb.classList.toggle('sel',eraserOn);document.querySelectorAll('.stamp').forEach(el=>el.classList.toggle('sel',el.textContent===stampMode)); }
 
-  // Row 2: sizes | eraser | stamps | clear
-  const tr = document.getElementById('row-tools');
+// ════════════════════════════════════════════════════════════════
+//  GOMOKU TAB  (10×10, 5 in a row)
+// ════════════════════════════════════════════════════════════════
+const GRID=10,WIN=5,COL_X='#ff6b35',COL_O='#4da6ff';
+const xoC=document.getElementById('xo-canvas'),xoCtx=xoC.getContext('2d');
+let xoBoard=Array(GRID*GRID).fill(0),xoMyTurn=false,xoGameOver=false;
+let xoScoreMe=0,xoScoreThem=0,xoWinCells=[],xoNextFirst=1;
 
-  // Sizes
-  SIZES.forEach(s => {
-    const el = document.createElement('div');
-    el.className = 'szbtn' + (s === penSize ? ' sel' : '');
-    const d = s * 0.65 + 16;
-    el.style.cssText = `width:${d}px;height:${d}px;`;
-    el.innerHTML = `<div style="width:${Math.max(3,s*.5)}px;height:${Math.max(3,s*.5)}px;border-radius:50%;background:rgba(255,255,255,.85)"></div>`;
-    el.addEventListener('pointerdown', () => {
-      penSize = s;
-      tr.querySelectorAll('.szbtn').forEach(e => e.classList.remove('sel'));
-      el.classList.add('sel');
+function xoRedraw(){
+  const S=Math.floor(Math.min(window.innerWidth-8,(window.innerHeight-HUD_H-120)/1)*1);
+  const bS=Math.floor(Math.min(window.innerWidth-8,window.innerHeight-HUD_H-120)/GRID)*GRID;
+  xoC.width=xoC.height=bS;const cs=bS/GRID;
+  xoCtx.fillStyle='#1c1040';xoCtx.fillRect(0,0,bS,bS);
+  xoCtx.fillStyle='rgba(255,255,255,.18)';
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){xoCtx.beginPath();xoCtx.arc(c*cs+cs/2,r*cs+cs/2,1.2,0,Math.PI*2);xoCtx.fill();}
+  xoCtx.strokeStyle='rgba(255,255,255,.1)';xoCtx.lineWidth=1;
+  for(let i=0;i<=GRID;i++){xoCtx.beginPath();xoCtx.moveTo(i*cs,0);xoCtx.lineTo(i*cs,bS);xoCtx.stroke();xoCtx.beginPath();xoCtx.moveTo(0,i*cs);xoCtx.lineTo(bS,i*cs);xoCtx.stroke();}
+  for(let i=0;i<GRID*GRID;i++){
+    if(!xoBoard[i])continue;
+    const col2=i%GRID,row2=Math.floor(i/GRID),cx=col2*cs+cs/2,cy=row2*cs+cs/2,r2=cs*0.37;
+    const isWin=xoWinCells.includes(i),color=xoBoard[i]===1?COL_X:COL_O;
+    xoCtx.save();if(isWin){xoCtx.shadowColor=color;xoCtx.shadowBlur=cs*0.7;}
+    xoCtx.beginPath();xoCtx.arc(cx,cy,r2,0,Math.PI*2);
+    const g=xoCtx.createRadialGradient(cx-r2*.25,cy-r2*.3,r2*.05,cx,cy,r2);
+    g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(0.4,color);g.addColorStop(1,shadeColor(color,-55));
+    xoCtx.fillStyle=g;xoCtx.fill();
+    if(xoGameOver&&xoWinCells.length&&!isWin){xoCtx.beginPath();xoCtx.arc(cx,cy,r2,0,Math.PI*2);xoCtx.fillStyle='rgba(0,0,0,.55)';xoCtx.fill();}
+    xoCtx.restore();
+  }
+  if(xoWinCells.length===WIN){
+    const sf=xoWinCells.slice().sort((a,b)=>a-b),f=sf[0],l=sf[WIN-1];
+    xoCtx.save();xoCtx.strokeStyle='rgba(255,255,255,.85)';xoCtx.lineWidth=cs*0.12;xoCtx.lineCap='round';
+    xoCtx.beginPath();xoCtx.moveTo((f%GRID)*cs+cs/2,Math.floor(f/GRID)*cs+cs/2);xoCtx.lineTo((l%GRID)*cs+cs/2,Math.floor(l/GRID)*cs+cs/2);xoCtx.stroke();xoCtx.restore();
+  }
+}
+function shadeColor(hex,amt){let r=parseInt(hex.slice(1,3),16)+amt,g=parseInt(hex.slice(3,5),16)+amt,b=parseInt(hex.slice(5,7),16)+amt;return'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');}
+function checkWin(board,cell,player){const row2=Math.floor(cell/GRID),col2=cell%GRID;for(const[dr,dc]of[[0,1],[1,0],[1,1],[1,-1]]){let cells=[cell];for(let d=1;d<WIN;d++){const r2=row2+dr*d,c2=col2+dc*d;if(r2<0||r2>=GRID||c2<0||c2>=GRID||board[r2*GRID+c2]!==player)break;cells.push(r2*GRID+c2);}for(let d=1;d<WIN;d++){const r2=row2-dr*d,c2=col2-dc*d;if(r2<0||r2>=GRID||c2<0||c2>=GRID||board[r2*GRID+c2]!==player)break;cells.push(r2*GRID+c2);}if(cells.length>=WIN)return cells;}return null;}
+function mySymbolXO(){ return amHost?1:2; }
+function xoUpdateStatus(){ if(xoGameOver)return;const col=amHost?COL_X:COL_O,tcol=amHost?COL_O:COL_X;document.getElementById('xo-status').innerHTML=xoMyTurn?`<span style="color:${col}">● Your turn</span>`:`<span style="color:${tcol};opacity:.7">● Their turn…</span>`; }
+function xoApplyMove(cell,isMine){
+  if(xoGameOver||xoBoard[cell])return;
+  const player=isMine?mySymbolXO():(amHost?2:1);xoBoard[cell]=player;
+  const win=checkWin(xoBoard,cell,player);
+  if(win){xoWinCells=win;xoGameOver=true;xoMyTurn=false;
+    if(isMine){xoScoreMe++;xoNextFirst=(amHost?2:1);}else{xoScoreThem++;xoNextFirst=(amHost?1:2);}
+    document.getElementById('xo-score-me').textContent=xoScoreMe;document.getElementById('xo-score-them').textContent=xoScoreThem;
+    const c=player===1?COL_X:COL_O;document.getElementById('xo-status').innerHTML=isMine?`<span style="color:${c}">🎉 You got 5 in a row!</span>`:`<span style="color:${c}">😅 They got 5 in a row!</span>`;
+    document.getElementById('xo-again').style.display='block';
+  } else if(xoBoard.every(v=>v)){xoGameOver=true;document.getElementById('xo-status').textContent="It's a draw! 🤝";document.getElementById('xo-again').style.display='block';}
+  else{xoMyTurn=!isMine;xoUpdateStatus();}
+  xoRedraw();
+}
+function xoReset(broadcast){xoBoard=Array(GRID*GRID).fill(0);xoWinCells=[];xoGameOver=false;document.getElementById('xo-again').style.display='none';xoMyTurn=(xoNextFirst===mySymbolXO());xoUpdateStatus();xoRedraw();if(broadcast)send({type:'xo_reset'});}
+xoC.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];xoTap(t.clientX,t.clientY);},{passive:false});
+xoC.addEventListener('mousedown',e=>xoTap(e.clientX,e.clientY));
+function xoTap(cx,cy){if(!gameActive||!xoMyTurn||xoGameOver)return;const rect=xoC.getBoundingClientRect(),cs=xoC.width/GRID,col2=Math.floor((cx-rect.left)/cs),row2=Math.floor((cy-rect.top)/cs);if(col2<0||col2>=GRID||row2<0||row2>=GRID)return;const cell=row2*GRID+col2;if(xoBoard[cell])return;send({type:'xo_move',cell});xoApplyMove(cell,true);}
+
+// ════════════════════════════════════════════════════════════════
+//  TORPEDO TAB
+// ════════════════════════════════════════════════════════════════
+const TPCOLS=100, TPROWS=50;
+const TP_SIDEBAR_W = 140;
+
+// Ship definitions: [name, emoji, baseCells]
+const TP_SHIPS = [
+  { name:'Jet Ski',    icon:'🛥',  base:[[0,0]] },
+  { name:'Motorboat',  icon:'⛵',  base:[[0,0],[0,1]] },
+  { name:'Tugboat',    icon:'🚢',  base:[[0,0],[0,1],[0,2]] },
+  { name:'Destroyer',  icon:'⚓',  base:[[0,0],[0,1],[0,2],[0,3],[1,3]] },
+  { name:'Battleship', icon:'💣',  base:[[0,0],[1,0],[1,1],[1,2],[1,3]] },
+  { name:'Carrier',    icon:'✈️',  base:[[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5]] },
+];
+const TP_COLORS = ['#4ecdc4','#45b7d1','#96ceb4','#f9ca24','#e17055','#d63031'];
+
+function tpRotateCells(cells, rot){
+  let r=cells.map(([a,b])=>[a,b]);
+  for(let t=0;t<rot%4;t++){
+    r=r.map(([a,b])=>[b,-a]);
+    const minR=Math.min(...r.map(([a])=>a)),minC=Math.min(...r.map(([,b])=>b));
+    r=r.map(([a,b])=>[a-minR,b-minC]);
+  }
+  return r;
+}
+
+// State
+let tpPhase='placement'; // 'placement'|'waiting'|'battle'|'gameover'
+let tpMyTurn=false, tpIMReady=false, tpTheyReady=false;
+let tpView='enemy'; // 'enemy'|'mine'
+
+// My fleet: [{typeIdx, cells:[[r,c],...], hitSet:Set<'r,c'>}]
+let tpMyFleet=[];
+// 'r,c' → fleet index for my grid
+let tpMyGrid={};
+// Enemy knowledge: 'r,c' → 'hit'|'miss'
+let tpEnemyMap={};
+// How many of each enemy ship is fully destroyed
+let tpEnemyShipsLeft=6;
+
+// Placement UI
+let tpHeldType=-1, tpHeldRot=0, tpHoverR=null, tpHoverC=null;
+let tpPlaced=[]; // bool[6] — which ship types have been placed
+
+// Canvas
+const tpC=document.getElementById('tp-canvas'), tpCtx=tpC.getContext('2d');
+let tpCS=8; // cell size in px
+let tpOffX=0, tpOffY=0; // canvas offset within the wrap (centering)
+
+// Pan state
+let tpPanX=0, tpPanY=0, tpPanStart=null;
+
+function tpCellSizePx(){
+  const sidebarW = (tpPhase==='placement') ? TP_SIDEBAR_W : 0;
+  const statusH  = 40;
+  const wrap     = document.getElementById('tp-canvas-wrap');
+  const availW   = (wrap ? wrap.clientWidth : window.innerWidth - sidebarW) || (window.innerWidth - sidebarW);
+  const availH   = window.innerHeight - HUD_H - statusH;
+  return Math.max(4, Math.floor(Math.min(availW / TPCOLS, availH / TPROWS)));
+}
+
+function tpRedraw(){
+  tpCS = tpCellSizePx();
+  tpC.width  = tpCS * TPCOLS;
+  tpC.height = tpCS * TPROWS;
+
+  const ctx2 = tpCtx;
+
+  // Ocean background
+  ctx2.fillStyle='#0a1628';
+  ctx2.fillRect(0,0,tpC.width,tpC.height);
+
+  // Subtle wave pattern
+  ctx2.strokeStyle='rgba(255,255,255,.04)';ctx2.lineWidth=1;
+  for(let r=0;r<=TPROWS;r++){ctx2.beginPath();ctx2.moveTo(0,r*tpCS);ctx2.lineTo(tpC.width,r*tpCS);ctx2.stroke();}
+  for(let c=0;c<=TPCOLS;c++){ctx2.beginPath();ctx2.moveTo(c*tpCS,0);ctx2.lineTo(c*tpCS,tpC.height);ctx2.stroke();}
+
+  // Axis labels every 10
+  ctx2.fillStyle='rgba(255,255,255,.3)';ctx2.font=`${Math.max(5,tpCS-2)}px monospace`;ctx2.textAlign='center';ctx2.textBaseline='middle';
+  if(tpCS>=7){
+    for(let c=9;c<TPCOLS;c+=10){ctx2.fillText(c+1, c*tpCS+tpCS/2, tpCS*0.5);}
+    for(let r=9;r<TPROWS;r+=10){ctx2.fillText(r+1, tpCS*0.5, r*tpCS+tpCS/2);}
+  }
+
+  // ── MINE view or PLACEMENT view: draw my fleet
+  if(tpView==='mine' || tpPhase==='placement'){
+    // Draw placed ships
+    tpMyFleet.forEach((ship,idx)=>{
+      const color=TP_COLORS[ship.typeIdx];
+      ship.cells.forEach(([r,c])=>{
+        const key=`${r},${c}`;
+        const isHit=ship.hitSet.has(key);
+        ctx2.fillStyle=isHit?'#c0392b':color;
+        ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
+        if(isHit){
+          ctx2.strokeStyle='#fff';ctx2.lineWidth=1.5;
+          ctx2.beginPath();ctx2.moveTo(c*tpCS+3,r*tpCS+3);ctx2.lineTo(c*tpCS+tpCS-3,r*tpCS+tpCS-3);ctx2.stroke();
+          ctx2.beginPath();ctx2.moveTo(c*tpCS+tpCS-3,r*tpCS+3);ctx2.lineTo(c*tpCS+3,r*tpCS+tpCS-3);ctx2.stroke();
+        }
+      });
     });
-    tr.appendChild(el);
-  });
+    // Draw enemy misses on my grid (in placement view they won't exist yet)
+    // (enemy misses on my grid are stored separately — skip for placement)
+  }
 
-  const dv1 = document.createElement('div'); dv1.className='dv'; tr.appendChild(dv1);
-
-  // Eraser
-  const erBtn = document.createElement('button');
-  erBtn.className='tbtn'; erBtn.id='eraser-btn'; erBtn.textContent='🧹 Erase';
-  erBtn.addEventListener('pointerdown', () => {
-    eraserOn = !eraserOn; stampMode = null; syncToolState();
-  });
-  tr.appendChild(erBtn);
-
-  const dv2 = document.createElement('div'); dv2.className='dv'; tr.appendChild(dv2);
-
-  // Stamps
-  STAMPS.forEach(em => {
-    const el = document.createElement('div');
-    el.className = 'stamp'; el.textContent = em;
-    el.addEventListener('pointerdown', () => {
-      stampMode = stampMode === em ? null : em;
-      eraserOn = false; syncToolState();
-      el.classList.toggle('sel', stampMode === em);
-    });
-    tr.appendChild(el);
-  });
-
-  const dv3 = document.createElement('div'); dv3.className='dv'; tr.appendChild(dv3);
-
-  // Clear
-  const clrBtn = document.createElement('button');
-  clrBtn.className='clrbtn'; clrBtn.textContent='🗑️ Clear';
-  clrBtn.addEventListener('pointerdown', e => {
-    e.stopPropagation();
-    if (confirm('Clear the whole drawing? 🎨')) {
-      applyClear(); send({ type:'clear' });
+  // ── ENEMY view or BATTLE: draw what I know of enemy grid
+  if(tpView==='enemy' || tpPhase==='placement'){
+    if(tpPhase!=='placement'){
+      Object.entries(tpEnemyMap).forEach(([key,val])=>{
+        const [r,c]=key.split(',').map(Number);
+        if(val==='hit'){
+          ctx2.fillStyle='#e74c3c';
+          ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
+          ctx2.strokeStyle='rgba(255,255,255,.7)';ctx2.lineWidth=1.5;
+          ctx2.beginPath();ctx2.moveTo(c*tpCS+3,r*tpCS+3);ctx2.lineTo(c*tpCS+tpCS-3,r*tpCS+tpCS-3);ctx2.stroke();
+          ctx2.beginPath();ctx2.moveTo(c*tpCS+tpCS-3,r*tpCS+3);ctx2.lineTo(c*tpCS+3,r*tpCS+tpCS-3);ctx2.stroke();
+        } else {
+          ctx2.fillStyle='rgba(255,255,255,.18)';
+          ctx2.beginPath();ctx2.arc(c*tpCS+tpCS/2,r*tpCS+tpCS/2,Math.max(2,tpCS*0.22),0,Math.PI*2);ctx2.fill();
+        }
+      });
     }
-  });
-  tr.appendChild(clrBtn);
-}
+  }
 
-function syncToolState() {
-  const erBtn = document.getElementById('eraser-btn');
-  if (erBtn) erBtn.classList.toggle('sel', eraserOn);
-  document.querySelectorAll('.stamp').forEach(el => {
-    el.classList.toggle('sel', el.textContent === stampMode);
-  });
-}
-
-// ─── Game start ───────────────────────────────────────────────────────────────
-function startGame(host) {
-  gameActive = true;
-  document.getElementById('lobby').style.display = 'none';
-  document.getElementById('hud').style.display = 'flex';
-  document.getElementById('toolbar').style.display = 'flex';
-  penColor = host ? '#ff4444' : '#2196f3'; // host=red, joiner=blue
-  const tagColor = host ? '#ff6a00' : '#7c5cfc';
-  document.getElementById('ptag-me').style.background = tagColor;
-  buildToolbar();
-  resize();
-  drawPaper();
-}
-
-// ─── Lobby ────────────────────────────────────────────────────────────────────
-function setStatus(t) { document.getElementById('smsg').textContent = t; }
-
-document.getElementById('btn-host').onclick = () => {
-  const code = String(Math.floor(1000 + Math.random() * 9000));
-  setStatus('Connecting...');
-  peer = new Peer('draw2-' + code, { debug:0 });
-  peer.on('open', () => {
-    setStatus('');
-    document.getElementById('card').innerHTML = `
-      <div class="sub">Tell the other player this code:</div>
-      <div class="code-big">${code}</div>
-      <div class="sub">Waiting for them to join... 🕐</div>
-    `;
-  });
-  peer.on('connection', c => {
-    conn = c;
-    conn.on('open', () => startGame(true));
-    conn.on('data', d => onMessage(d));
-  });
-  peer.on('error', e => setStatus('Error: ' + e.type + '. Try refreshing.'));
-};
-
-document.getElementById('btn-join').onclick = () => {
-  document.getElementById('card').innerHTML = `
-    <div class="sub">Enter the 4-digit code from the host:</div>
-    <input type="text" id="jc" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off">
-    <button class="lbtn lbtn-go" id="btn-go">Connect 🚀</button>
-  `;
-  const doJoin = () => {
-    const code = document.getElementById('jc').value.trim();
-    if (code.length < 4) { setStatus('Enter all 4 digits!'); return; }
-    setStatus('Connecting...');
-    peer = new Peer({ debug:0 });
-    peer.on('open', () => {
-      conn = peer.connect('draw2-' + code, { reliable:true });
-      conn.on('open',  () => startGame(false));
-      conn.on('data',  d  => onMessage(d));
+  // ── Placement preview: held ship
+  if(tpPhase==='placement' && tpHeldType>=0 && tpHoverR!==null){
+    const cells=tpRotateCells(TP_SHIPS[tpHeldType].base, tpHeldRot);
+    const valid=tpCanPlace(cells, tpHoverR, tpHoverC);
+    ctx2.fillStyle=valid?'rgba(100,255,150,.55)':'rgba(255,60,60,.45)';
+    cells.forEach(([dr,dc])=>{
+      const r=tpHoverR+dr, c=tpHoverC+dc;
+      if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS) ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
     });
-    peer.on('error', e => setStatus('Could not connect — check the code.'));
+    // Outline
+    ctx2.strokeStyle=valid?'#00ff88':'#ff4444';ctx2.lineWidth=1.5;
+    cells.forEach(([dr,dc])=>{
+      const r=tpHoverR+dr,c=tpHoverC+dc;
+      if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS) ctx2.strokeRect(c*tpCS+.75,r*tpCS+.75,tpCS-1.5,tpCS-1.5);
+    });
+  }
+
+  // ── Crosshair on enemy view hover (touch: skip)
+  // handled in mouse move
+
+  tpUpdateStatus();
+}
+
+function tpCanPlace(cells, anchorR, anchorC){
+  for(const [dr,dc] of cells){
+    const r=anchorR+dr, c=anchorC+dc;
+    if(r<0||r>=TPROWS||c<0||c>=TPCOLS) return false;
+    if(tpMyGrid[`${r},${c}`]!==undefined) return false;
+  }
+  return true;
+}
+
+function tpPlaceShip(typeIdx, anchorR, anchorC, rot){
+  const cells=tpRotateCells(TP_SHIPS[typeIdx].base, rot);
+  if(!tpCanPlace(cells, anchorR, anchorC)) return false;
+  const idx=tpMyFleet.length;
+  const fullCells=cells.map(([dr,dc])=>[anchorR+dr, anchorC+dc]);
+  tpMyFleet.push({typeIdx, cells:fullCells, hitSet:new Set()});
+  fullCells.forEach(([r,c])=>{ tpMyGrid[`${r},${c}`]=idx; });
+  tpPlaced[typeIdx]=true;
+  tpUpdateSidebar();
+  tpRedraw();
+  // Show ready button if all placed
+  if(tpPlaced.every(Boolean)) document.getElementById('tp-ready-btn').style.display='block';
+  return true;
+}
+
+function tpPickUpShip(r, c){
+  const idx=tpMyGrid[`${r},${c}`];
+  if(idx===undefined) return;
+  const ship=tpMyFleet[idx];
+  // Remove from grid
+  ship.cells.forEach(([sr,sc])=>delete tpMyGrid[`${sr},${sc}`]);
+  tpMyFleet.splice(idx,1);
+  // Re-index remaining ships
+  Object.keys(tpMyGrid).forEach(k=>{ if(tpMyGrid[k]>idx) tpMyGrid[k]--; });
+  tpPlaced[ship.typeIdx]=false;
+  tpHeldType=ship.typeIdx; tpHeldRot=0;
+  tpUpdateSidebar();
+  document.getElementById('tp-ready-btn').style.display='none';
+  tpRedraw();
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────
+function tpBuildSidebar(){
+  const list=document.getElementById('tp-ships-list');
+  list.innerHTML='';
+  TP_SHIPS.forEach((ship,i)=>{
+    const tile=document.createElement('div');
+    tile.className='tp-ship-tile'+(tpHeldType===i?' sel':'')+(tpPlaced[i]?' placed':'');
+    tile.id='tp-tile-'+i;
+
+    // Mini preview canvas
+    const cells=ship.base;
+    const maxR=Math.max(...cells.map(([r])=>r))+1;
+    const maxC=Math.max(...cells.map(([,c])=>c))+1;
+    const pxSz=Math.min(12, Math.floor((TP_SIDEBAR_W-20)/(maxC||1)));
+    const pc=document.createElement('canvas');
+    pc.width=maxC*pxSz; pc.height=maxR*pxSz; pc.className='tp-ship-preview';
+    const pctx=pc.getContext('2d');
+    pctx.fillStyle=tpPlaced[i]?'#555':TP_COLORS[i];
+    cells.forEach(([r,c])=>pctx.fillRect(c*pxSz+1,r*pxSz+1,pxSz-2,pxSz-2));
+    if(tpPlaced[i]){
+      pctx.fillStyle='rgba(0,200,100,.7)';pctx.font=`${pxSz*maxR*.7}px serif`;pctx.textAlign='center';pctx.textBaseline='middle';
+      pctx.fillText('✓',pc.width/2,pc.height/2);
+    }
+
+    const nm=document.createElement('div');nm.className='tp-ship-name';nm.textContent=ship.name;
+
+    tile.appendChild(pc); tile.appendChild(nm);
+    if(!tpPlaced[i]){
+      tile.addEventListener('pointerdown', ()=>{
+        if(tpPlaced[i]) return;
+        tpHeldType=i; tpHeldRot=0; tpHoverR=null; tpHoverC=null;
+        tpUpdateSidebar(); tpRedraw();
+      });
+    }
+    list.appendChild(tile);
+  });
+}
+function tpUpdateSidebar(){ tpBuildSidebar(); }
+
+// ── Canvas interaction ───────────────────────────────────────────
+let tpTouchId=null, tpLastTouch=null;
+
+function tpPixToCell(px,py){ return [Math.floor(py/tpCS), Math.floor(px/tpCS)]; }
+
+function tpCanvasDown(px,py){
+  if(tpPhase==='placement'){
+    if(tpHeldType>=0){
+      const [r,c]=tpPixToCell(px,py);
+      tpHoverR=r; tpHoverC=c; tpRedraw();
+    } else {
+      // Pick up a placed ship
+      const [r,c]=tpPixToCell(px,py);
+      if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS) tpPickUpShip(r,c);
+    }
+  } else if(tpPhase==='battle' && tpView==='enemy' && tpMyTurn){
+    const [r,c]=tpPixToCell(px,py);
+    if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS && !tpEnemyMap[`${r},${c}`]){
+      tpFire(r,c);
+    }
+  }
+}
+
+function tpCanvasMove(px,py){
+  if(tpPhase==='placement' && tpHeldType>=0){
+    const [r,c]=tpPixToCell(px,py);
+    if(r!==tpHoverR||c!==tpHoverC){ tpHoverR=r; tpHoverC=c; tpRedraw(); }
+  }
+}
+
+function tpCanvasUp(px,py){
+  if(tpPhase==='placement' && tpHeldType>=0){
+    const [r,c]=tpPixToCell(px,py);
+    if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS){
+      if(tpPlaceShip(tpHeldType, r, c, tpHeldRot)){
+        tpHeldType=-1; tpHoverR=null; tpHoverC=null;
+        tpUpdateSidebar(); tpRedraw();
+      }
+    }
+  }
+}
+
+tpC.addEventListener('touchstart',e=>{e.preventDefault();if(tpTouchId===null){const t=e.changedTouches[0];tpTouchId=t.identifier;const rect=tpC.getBoundingClientRect();tpCanvasDown(t.clientX-rect.left,t.clientY-rect.top);}},{passive:false});
+tpC.addEventListener('touchmove', e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===tpTouchId){const rect=tpC.getBoundingClientRect();tpCanvasMove(t.clientX-rect.left,t.clientY-rect.top);break;}},{passive:false});
+tpC.addEventListener('touchend',  e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===tpTouchId){const rect=tpC.getBoundingClientRect();tpCanvasUp(t.clientX-rect.left,t.clientY-rect.top);tpTouchId=null;break;}},{passive:false});
+tpC.addEventListener('mousedown',  e=>{const r=tpC.getBoundingClientRect();tpCanvasDown(e.clientX-r.left,e.clientY-r.top);});
+tpC.addEventListener('mousemove',  e=>{const r=tpC.getBoundingClientRect();tpCanvasMove(e.clientX-r.left,e.clientY-r.top);});
+tpC.addEventListener('mouseup',    e=>{const r=tpC.getBoundingClientRect();tpCanvasUp(e.clientX-r.left,e.clientY-r.top);});
+
+function tpRotate(){
+  if(tpHeldType<0) return;
+  tpHeldRot=(tpHeldRot+1)%4;
+  tpRedraw();
+}
+
+// ── Battle ───────────────────────────────────────────────────────
+function tpFire(r,c){
+  if(!tpMyTurn||tpPhase!=='battle') return;
+  send({type:'tp_fire',r,c});
+  tpMyTurn=false;
+  tpUpdateStatus();
+}
+
+function tpReceiveFire(r,c){
+  // Check my fleet
+  const key=`${r},${c}`;
+  const idx=tpMyGrid[key];
+  let hit=false, destroyed=false, remaining=tpMyFleet.filter(s=>!s.destroyed).length;
+  if(idx!==undefined){
+    hit=true;
+    const ship=tpMyFleet[idx];
+    ship.hitSet.add(key);
+    if(ship.cells.every(([sr,sc])=>ship.hitSet.has(`${sr},${sc}`))){
+      ship.destroyed=true; destroyed=true; remaining--;
+    }
+  }
+  const gameOver = tpMyFleet.every(s=>s.destroyed);
+  send({type:'tp_result',r,c,hit,destroyed,gameOver});
+  tpMyTurn=true;
+  if(activeTab==='torpedo') tpRedraw();
+  tpUpdateStatus();
+  if(gameOver) tpShowGameOver(false);
+}
+
+function tpReceiveResult(msg){
+  const key=`${msg.r},${msg.c}`;
+  tpEnemyMap[key]=msg.hit?'hit':'miss';
+  if(msg.destroyed) tpEnemyShipsLeft--;
+  if(activeTab==='torpedo') tpRedraw();
+  if(msg.gameOver) tpShowGameOver(true);
+}
+
+function tpShowGameOver(iWon){
+  tpPhase='gameover';
+  const go=document.getElementById('tp-gameover');
+  document.getElementById('tp-gameover-msg').innerHTML=iWon
+    ? '🎉 Victory!<br><small style="font-size:.6em;opacity:.7">All enemy ships sunk!</small>'
+    : '💥 Defeated!<br><small style="font-size:.6em;opacity:.7">Your fleet was sunk!</small>';
+  go.style.display='flex';
+  tpUpdateStatus();
+}
+
+function tpSendReady(){
+  tpIMReady=true;
+  document.getElementById('tp-ready-btn').style.display='none';
+  document.getElementById('tp-status-txt').textContent='Waiting for opponent to place ships…';
+  send({type:'tp_ready'});
+  tpCheckBothReady();
+}
+
+function tpCheckBothReady(){
+  if(!tpIMReady||!tpTheyReady) return;
+  tpPhase='battle';
+  tpMyTurn=amHost; // host fires first
+  tpView='enemy';
+  // Show view toggle buttons
+  ['tp-btn-enemy','tp-btn-mine'].forEach(id=>document.getElementById(id).style.display='block');
+  // Hide sidebar
+  document.getElementById('tp-sidebar').style.display='none';
+  tpRedraw();
+  tpUpdateStatus();
+}
+
+function tpSetView(v){
+  tpView=v;
+  document.getElementById('tp-btn-enemy').classList.toggle('active',v==='enemy');
+  document.getElementById('tp-btn-mine').classList.toggle('active',v==='mine');
+  tpRedraw();
+}
+
+function tpUpdateStatus(){
+  if(tpPhase==='placement'){
+    const n=tpPlaced.filter(Boolean).length;
+    document.getElementById('tp-status-txt').textContent=`Place your ships (${n}/6 placed)`;
+    return;
+  }
+  if(tpPhase==='waiting'||!tpIMReady||!tpTheyReady){
+    document.getElementById('tp-status-txt').textContent='Waiting for opponent…'; return;
+  }
+  if(tpPhase==='gameover') return;
+  document.getElementById('tp-status-txt').innerHTML=tpMyTurn
+    ?'<span style="color:#f9ca24">🎯 Your turn — tap to fire!</span>'
+    :'<span style="opacity:.6">⏳ Waiting for their shot…</span>';
+}
+
+function tpReset(broadcast){
+  tpPhase='placement'; tpMyTurn=false; tpIMReady=false; tpTheyReady=false;
+  tpView='enemy'; tpMyFleet=[]; tpMyGrid={}; tpEnemyMap={};
+  tpEnemyShipsLeft=6; tpPlaced=Array(6).fill(false);
+  tpHeldType=-1; tpHeldRot=0; tpHoverR=null; tpHoverC=null;
+  document.getElementById('tp-gameover').style.display='none';
+  document.getElementById('tp-sidebar').style.display='flex';
+  ['tp-btn-enemy','tp-btn-mine'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('tp-ready-btn').style.display='none';
+  tpBuildSidebar(); tpRedraw();
+  if(broadcast) send({type:'tp_reset'});
+}
+
+// ════════════════════════════════════════════════════════════════
+//  GAME START
+// ════════════════════════════════════════════════════════════════
+function startGame(host){
+  amHost=host; gameActive=true;
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  penColor=host?'#ff4444':'#2196f3';
+  document.getElementById('ptag-me').style.background  = host?'#c0392b':'#1565c0';
+  document.getElementById('ptag-me').textContent       = host?'● You (X)':'● You (O)';
+  document.getElementById('ptag-them').textContent     = host?'● Them (O)':'● Them (X)';
+  document.getElementById('xo-name-me').textContent    = host?'❌ You':'⭕ You';
+  document.getElementById('xo-name-them').textContent  = host?'⭕ Them':'❌ Them';
+  buildToolbar();
+  document.getElementById('toolbar').style.display='flex';
+  drawCanvas.style.display='block';
+  // Gomoku
+  xoNextFirst=1; xoMyTurn=host;
+  // Torpedo init
+  tpPlaced=Array(6).fill(false);
+  tpBuildSidebar();
+  resize(); drawPaper(); xoRedraw(); xoUpdateStatus(); tpRedraw();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LOBBY
+// ════════════════════════════════════════════════════════════════
+function setStatus(t){ document.getElementById('smsg').textContent=t; }
+
+document.getElementById('btn-host').onclick=()=>{
+  const code=String(Math.floor(1000+Math.random()*9000)); setStatus('Connecting...');
+  peer=new Peer('draw2-'+code,{debug:0});
+  peer.on('open',()=>{ setStatus('');document.getElementById('card').innerHTML=`<div class="sub">Tell the other player this code:</div><div class="code-big">${code}</div><div class="sub">Waiting for them to join... 🕐</div>`; });
+  peer.on('connection',c=>{ conn=c;conn.on('open',()=>startGame(true));conn.on('data',d=>onMessage(d)); });
+  peer.on('error',e=>setStatus('Error: '+e.type+'. Try refreshing.'));
+};
+document.getElementById('btn-join').onclick=()=>{
+  document.getElementById('card').innerHTML=`<div class="sub">Enter the 4-digit code from the host:</div><input type="text" id="jc" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off"><button class="lbtn lbtn-go" id="btn-go">Connect 🚀</button>`;
+  const doJoin=()=>{
+    const code=document.getElementById('jc').value.trim();
+    if(code.length<4){setStatus('Enter all 4 digits!');return;}
+    setStatus('Connecting...');peer=new Peer({debug:0});
+    peer.on('open',()=>{ conn=peer.connect('draw2-'+code,{reliable:true});conn.on('open',()=>startGame(false));conn.on('data',d=>onMessage(d)); });
+    peer.on('error',e=>setStatus('Could not connect — check the code.'));
   };
-  document.getElementById('btn-go').onclick = doJoin;
-  document.getElementById('jc').onkeydown = e => { if (e.key === 'Enter') doJoin(); };
-  setTimeout(() => { const el = document.getElementById('jc'); if (el) el.focus(); }, 80);
+  document.getElementById('btn-go').onclick=doJoin;
+  document.getElementById('jc').onkeydown=e=>{if(e.key==='Enter')doJoin();};
+  setTimeout(()=>{const el=document.getElementById('jc');if(el)el.focus();},80);
 };
 
-// Initial sizing
 resize();
 </script>
 </body>
