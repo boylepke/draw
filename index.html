@@ -52,61 +52,124 @@ canvas { position:fixed; left:0; display:block; }
 #xo-again { background:linear-gradient(135deg,#11d68a,#0088cc); border:none; color:#fff; font-family:inherit; font-size:clamp(.9rem,3.5vw,1.1rem); font-weight:800; padding:clamp(10px,2.5vw,14px) clamp(24px,7vw,44px); border-radius:16px; cursor:pointer; box-shadow:0 5px 18px rgba(0,0,0,.4); display:none; }
 #xo-again:active { transform:scale(.95); }
 
-/* ── Torpedo panel ── */
+/* ── Torpedo panel — RADAR UI ── */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
 #tp-panel {
   position:fixed; left:0; right:0; z-index:8;
   display:none; flex-direction:column;
-  background:#0a1020; touch-action:none;
+  background:#000800; touch-action:none;
+  font-family:'Share Tech Mono', 'Courier New', monospace;
 }
+
+/* CRT scanline overlay */
+#tp-panel::before {
+  content:''; position:absolute; inset:0; z-index:100; pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.12) 2px, rgba(0,0,0,.12) 4px);
+}
+
+/* CRT vignette */
+#tp-panel::after {
+  content:''; position:absolute; inset:0; z-index:99; pointer-events:none;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.55) 100%);
+}
+
 #tp-statusbar {
   flex-shrink:0; height:40px; display:flex; align-items:center; justify-content:space-between;
-  padding:0 10px; background:rgba(0,0,0,.45); border-bottom:1px solid rgba(255,255,255,.1);
-  gap:8px;
+  padding:0 10px; background:#000; border-bottom:1px solid #003a00;
+  gap:8px; position:relative; z-index:101;
 }
-#tp-status-txt { font-size:.78rem; font-weight:800; color:#fff; flex:1; text-align:center; }
-.tp-viewbtn { font-size:.72rem; font-weight:800; color:rgba(255,255,255,.6); padding:4px 9px; border-radius:9px; border:1.5px solid rgba(255,255,255,.2); background:transparent; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all .15s; }
-.tp-viewbtn.active { color:#fff; background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.4); }
+#tp-status-txt {
+  font-size:.72rem; font-weight:400; color:#00ff41; flex:1; text-align:center;
+  text-shadow: 0 0 8px #00ff41; letter-spacing:.08em; text-transform:uppercase;
+}
+.tp-viewbtn {
+  font-size:.65rem; font-weight:400; color:#007a20; padding:4px 9px;
+  border-radius:4px; border:1px solid #004400; background:transparent;
+  cursor:pointer; font-family:inherit; white-space:nowrap; transition:all .12s;
+  letter-spacing:.06em; text-transform:uppercase;
+}
+.tp-viewbtn.active {
+  color:#00ff41; background:rgba(0,255,65,.1); border-color:#00aa33;
+  text-shadow:0 0 6px #00ff41; box-shadow: 0 0 8px rgba(0,255,65,.25);
+}
 
-#tp-play-area {
-  flex:1; display:flex; flex-direction:row; overflow:hidden; min-height:0;
-}
+#tp-play-area { flex:1; display:flex; flex-direction:row; overflow:hidden; min-height:0; }
+
 #tp-canvas-wrap {
   flex:1; display:flex; align-items:center; justify-content:center;
-  overflow:hidden; position:relative; min-width:0;
+  overflow:hidden; position:relative; min-width:0; background:#000800;
 }
-#tp-canvas { display:block; touch-action:none; image-rendering:pixelated; cursor:crosshair; }
+
+/* Moving scan line */
+#tp-scanline {
+  position:absolute; left:0; right:0; height:3px; pointer-events:none; z-index:5;
+  background: linear-gradient(transparent, rgba(0,255,65,.18), transparent);
+  animation: tp-scan 4s linear infinite;
+}
+@keyframes tp-scan { 0%{top:-3px} 100%{top:100%} }
+
+/* Blinking cursor for "your turn" */
+@keyframes tp-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.tp-blink { animation: tp-blink 1s step-end infinite; }
+
+#tp-canvas { display:block; touch-action:none; image-rendering:pixelated; cursor:crosshair; position:relative; z-index:2; }
 
 /* Sidebar */
 #tp-sidebar {
-  flex-shrink:0; width:140px; background:rgba(0,0,0,.5);
-  border-left:1px solid rgba(255,255,255,.1);
+  flex-shrink:0; width:140px; background:#000;
+  border-left:1px solid #003300;
   display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
-  padding:8px 6px 12px;
-  gap:5px;
+  padding:8px 6px 12px; gap:5px; position:relative; z-index:101;
 }
 #tp-sidebar::-webkit-scrollbar { display:none; }
+
+/* Sidebar header label */
+#tp-sidebar-label {
+  font-size:.55rem; color:#004d14; letter-spacing:.12em; text-align:center;
+  text-transform:uppercase; padding:2px 0 4px; border-bottom:1px solid #002200;
+}
+
 .tp-ship-tile {
-  border-radius:8px; border:2px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05);
-  padding:5px 6px; cursor:pointer; user-select:none; transition:background .12s, border-color .12s;
+  border-radius:3px; border:1px solid #003300; background:rgba(0,40,0,.5);
+  padding:5px 6px; cursor:pointer; user-select:none; transition:all .12s;
   display:flex; flex-direction:column; gap:3px; align-items:center;
 }
-.tp-ship-tile.sel { border-color:#ffe066; background:rgba(255,224,102,.12); }
-.tp-ship-tile.placed { border-color:rgba(255,255,255,.05); background:rgba(255,255,255,.02); opacity:.5; cursor:default; }
-.tp-ship-name { font-size:.6rem; font-weight:700; color:rgba(255,255,255,.55); text-align:center; }
+.tp-ship-tile.sel {
+  border-color:#00ff41; background:rgba(0,255,65,.08);
+  box-shadow:0 0 10px rgba(0,255,65,.3), inset 0 0 6px rgba(0,255,65,.06);
+}
+.tp-ship-tile.placed { border-color:#002200; background:rgba(0,20,0,.3); opacity:.55; cursor:default; }
+.tp-ship-name { font-size:.55rem; color:#006622; text-align:center; text-transform:uppercase; letter-spacing:.06em; }
 .tp-ship-preview { display:block; }
+
 .tp-sidebtns { margin-top:auto; display:flex; flex-direction:column; gap:5px; padding-top:6px; }
-.tp-sbtn { font-family:inherit; font-size:.76rem; font-weight:800; border:none; border-radius:10px; padding:7px 4px; cursor:pointer; width:100%; }
-.tp-sbtn-rot  { background:rgba(255,255,255,.14); color:#fff; }
-.tp-sbtn-ready { background:linear-gradient(135deg,#11d68a,#0088cc); color:#fff; display:none; }
+.tp-sbtn {
+  font-family:inherit; font-size:.65rem; font-weight:400; border:1px solid; border-radius:3px;
+  padding:7px 4px; cursor:pointer; width:100%; text-transform:uppercase; letter-spacing:.08em;
+}
+.tp-sbtn-rot   { background:rgba(0,60,0,.6); border-color:#005500; color:#00cc33; }
+.tp-sbtn-ready { background:rgba(0,180,60,.15); border-color:#00cc33; color:#00ff41;
+  text-shadow:0 0 6px #00ff41; box-shadow:0 0 8px rgba(0,255,65,.2); display:none; }
 .tp-sbtn-rot:active, .tp-sbtn-ready:active { transform:scale(.95); }
 
+/* Game over overlay */
 #tp-gameover {
   display:none; position:absolute; inset:0; z-index:20;
-  background:rgba(0,0,0,.72); align-items:center; justify-content:center; flex-direction:column;
-  gap:18px;
+  background:rgba(0,0,0,.88); align-items:center; justify-content:center; flex-direction:column;
+  gap:20px;
 }
-#tp-gameover-msg { font-size:clamp(1.4rem,6vw,2.2rem); font-weight:900; color:#fff; text-align:center; }
-#tp-gameover-again { background:linear-gradient(135deg,#11d68a,#0088cc); border:none; color:#fff; font-family:inherit; font-size:1rem; font-weight:800; padding:13px 34px; border-radius:16px; cursor:pointer; }
+#tp-gameover-msg {
+  font-size:clamp(1.3rem,5.5vw,2rem); color:#00ff41; text-align:center;
+  text-shadow:0 0 24px #00ff41, 0 0 48px rgba(0,255,65,.4);
+  font-family:'Share Tech Mono','Courier New',monospace; letter-spacing:.08em;
+}
+#tp-gameover-again {
+  background:transparent; border:1px solid #00cc33; color:#00ff41;
+  font-family:inherit; font-size:.85rem; font-weight:400;
+  padding:12px 32px; border-radius:3px; cursor:pointer; letter-spacing:.12em; text-transform:uppercase;
+  text-shadow:0 0 8px #00ff41; box-shadow:0 0 12px rgba(0,255,65,.25);
+}
 #tp-gameover-again:active { transform:scale(.95); }
 
 /* ── Lobby ── */
@@ -157,23 +220,25 @@ input[type=text]::placeholder { opacity:.28; }
 
 <div id="tp-panel">
   <div id="tp-statusbar">
-    <button class="tp-viewbtn active" id="tp-btn-enemy" onclick="tpSetView('enemy')" style="display:none">🎯 Fire</button>
-    <span id="tp-status-txt">Place your ships</span>
-    <button class="tp-viewbtn" id="tp-btn-mine" onclick="tpSetView('mine')" style="display:none">⚓ My fleet</button>
+    <button class="tp-viewbtn active" id="tp-btn-enemy" onclick="tpSetView('enemy')" style="display:none">◎ Attack</button>
+    <span id="tp-status-txt">Awaiting deployment</span>
+    <button class="tp-viewbtn" id="tp-btn-mine" onclick="tpSetView('mine')" style="display:none">▣ Defense</button>
   </div>
   <div id="tp-play-area">
     <div id="tp-canvas-wrap">
+      <div id="tp-scanline"></div>
       <canvas id="tp-canvas"></canvas>
       <div id="tp-gameover">
         <div id="tp-gameover-msg">…</div>
-        <button id="tp-gameover-again" onclick="tpReset(true)">Play again 🔁</button>
+        <button id="tp-gameover-again" onclick="tpReset(true)">[ NEW MISSION ]</button>
       </div>
     </div>
     <div id="tp-sidebar">
+      <div id="tp-sidebar-label">Fleet</div>
       <div id="tp-ships-list"></div>
       <div class="tp-sidebtns">
         <button class="tp-sbtn tp-sbtn-rot"   id="tp-rot-btn"   onclick="tpRotate()">⟳ Rotate</button>
-        <button class="tp-sbtn tp-sbtn-ready" id="tp-ready-btn" onclick="tpSendReady()">✓ Ready!</button>
+        <button class="tp-sbtn tp-sbtn-ready" id="tp-ready-btn" onclick="tpSendReady()">▶ Deploy</button>
       </div>
     </div>
   </div>
@@ -363,7 +428,7 @@ function xoTap(cx,cy){if(!gameActive||!xoMyTurn||xoGameOver)return;const rect=xo
 // ════════════════════════════════════════════════════════════════
 //  TORPEDO TAB
 // ════════════════════════════════════════════════════════════════
-const TPCOLS=100, TPROWS=50;
+const TPCOLS=50, TPROWS=50;
 const TP_SIDEBAR_W = 140;
 
 // Ship definitions: [name, emoji, baseCells]
@@ -429,81 +494,111 @@ function tpRedraw(){
 
   const ctx2 = tpCtx;
 
-  // Ocean background
-  ctx2.fillStyle='#0a1628';
+  // ── Radar background ──────────────────────────────────────────
+  ctx2.fillStyle='#000800';
   ctx2.fillRect(0,0,tpC.width,tpC.height);
 
-  // Subtle wave pattern
-  ctx2.strokeStyle='rgba(255,255,255,.04)';ctx2.lineWidth=1;
-  for(let r=0;r<=TPROWS;r++){ctx2.beginPath();ctx2.moveTo(0,r*tpCS);ctx2.lineTo(tpC.width,r*tpCS);ctx2.stroke();}
-  for(let c=0;c<=TPCOLS;c++){ctx2.beginPath();ctx2.moveTo(c*tpCS,0);ctx2.lineTo(c*tpCS,tpC.height);ctx2.stroke();}
+  // Subtle radial depth gradient
+  const rad=ctx2.createRadialGradient(tpC.width/2,tpC.height/2,0,tpC.width/2,tpC.height/2,Math.max(tpC.width,tpC.height)*0.65);
+  rad.addColorStop(0,'rgba(0,30,0,.0)'); rad.addColorStop(1,'rgba(0,0,0,.55)');
+  ctx2.fillStyle=rad; ctx2.fillRect(0,0,tpC.width,tpC.height);
 
-  // Axis labels every 10
-  ctx2.fillStyle='rgba(255,255,255,.3)';ctx2.font=`${Math.max(5,tpCS-2)}px monospace`;ctx2.textAlign='center';ctx2.textBaseline='middle';
-  if(tpCS>=7){
-    for(let c=9;c<TPCOLS;c+=10){ctx2.fillText(c+1, c*tpCS+tpCS/2, tpCS*0.5);}
-    for(let r=9;r<TPROWS;r+=10){ctx2.fillText(r+1, tpCS*0.5, r*tpCS+tpCS/2);}
+  // Fine grid — dim phosphor green lines
+  ctx2.lineWidth=0.5;
+  for(let r=0;r<=TPROWS;r++){
+    const isMajor=(r%10===0);
+    ctx2.strokeStyle=isMajor?'rgba(0,180,40,.22)':'rgba(0,100,20,.12)';
+    ctx2.beginPath();ctx2.moveTo(0,r*tpCS);ctx2.lineTo(tpC.width,r*tpCS);ctx2.stroke();
+  }
+  for(let c=0;c<=TPCOLS;c++){
+    const isMajor=(c%10===0);
+    ctx2.strokeStyle=isMajor?'rgba(0,180,40,.22)':'rgba(0,100,20,.12)';
+    ctx2.beginPath();ctx2.moveTo(c*tpCS,0);ctx2.lineTo(c*tpCS,tpC.height);ctx2.stroke();
   }
 
-  // ── MINE view or PLACEMENT view: draw my fleet
+  // Axis coordinate labels every 10 cols/rows
+  if(tpCS>=6){
+    const lblSz=Math.max(5,Math.min(tpCS-1,9));
+    ctx2.font=`${lblSz}px 'Share Tech Mono','Courier New',monospace`;
+    ctx2.textAlign='center'; ctx2.textBaseline='middle';
+    ctx2.fillStyle='rgba(0,200,50,.5)';
+    for(let c=9;c<TPCOLS;c+=10) ctx2.fillText(c+1, c*tpCS+tpCS/2, tpCS*0.5);
+    for(let r=9;r<TPROWS;r+=10) ctx2.fillText(r+1, tpCS*0.55, r*tpCS+tpCS/2);
+  }
+
+  // ── MY FLEET (placement + mine view) ───────────────────────────
   if(tpView==='mine' || tpPhase==='placement'){
-    // Draw placed ships
-    tpMyFleet.forEach((ship,idx)=>{
-      const color=TP_COLORS[ship.typeIdx];
+    tpMyFleet.forEach(ship=>{
       ship.cells.forEach(([r,c])=>{
         const key=`${r},${c}`;
         const isHit=ship.hitSet.has(key);
-        ctx2.fillStyle=isHit?'#c0392b':color;
-        ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
+        const px=c*tpCS, py=r*tpCS, sz=tpCS;
         if(isHit){
-          ctx2.strokeStyle='#fff';ctx2.lineWidth=1.5;
-          ctx2.beginPath();ctx2.moveTo(c*tpCS+3,r*tpCS+3);ctx2.lineTo(c*tpCS+tpCS-3,r*tpCS+tpCS-3);ctx2.stroke();
-          ctx2.beginPath();ctx2.moveTo(c*tpCS+tpCS-3,r*tpCS+3);ctx2.lineTo(c*tpCS+3,r*tpCS+tpCS-3);ctx2.stroke();
+          // Hit ship cell — red glow
+          ctx2.save();
+          ctx2.shadowColor='#ff3300'; ctx2.shadowBlur=tpCS*1.2;
+          ctx2.fillStyle='#cc2200';
+          ctx2.fillRect(px+1,py+1,sz-2,sz-2);
+          ctx2.restore();
+          // X mark
+          ctx2.strokeStyle='#ff6644'; ctx2.lineWidth=Math.max(1,tpCS*0.18);
+          ctx2.lineCap='round';
+          ctx2.beginPath();ctx2.moveTo(px+2,py+2);ctx2.lineTo(px+sz-2,py+sz-2);ctx2.stroke();
+          ctx2.beginPath();ctx2.moveTo(px+sz-2,py+2);ctx2.lineTo(px+2,py+sz-2);ctx2.stroke();
+        } else {
+          // Intact ship cell — bright phosphor green
+          ctx2.save();
+          ctx2.shadowColor='#00ff41'; ctx2.shadowBlur=tpCS*0.8;
+          ctx2.fillStyle='#003a00';
+          ctx2.fillRect(px+1,py+1,sz-2,sz-2);
+          ctx2.fillStyle='rgba(0,255,65,.65)';
+          ctx2.fillRect(px+1,py+1,sz-2,sz-2);
+          ctx2.restore();
         }
       });
     });
-    // Draw enemy misses on my grid (in placement view they won't exist yet)
-    // (enemy misses on my grid are stored separately — skip for placement)
   }
 
-  // ── ENEMY view or BATTLE: draw what I know of enemy grid
-  if(tpView==='enemy' || tpPhase==='placement'){
-    if(tpPhase!=='placement'){
-      Object.entries(tpEnemyMap).forEach(([key,val])=>{
-        const [r,c]=key.split(',').map(Number);
-        if(val==='hit'){
-          ctx2.fillStyle='#e74c3c';
-          ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
-          ctx2.strokeStyle='rgba(255,255,255,.7)';ctx2.lineWidth=1.5;
-          ctx2.beginPath();ctx2.moveTo(c*tpCS+3,r*tpCS+3);ctx2.lineTo(c*tpCS+tpCS-3,r*tpCS+tpCS-3);ctx2.stroke();
-          ctx2.beginPath();ctx2.moveTo(c*tpCS+tpCS-3,r*tpCS+3);ctx2.lineTo(c*tpCS+3,r*tpCS+tpCS-3);ctx2.stroke();
-        } else {
-          ctx2.fillStyle='rgba(255,255,255,.18)';
-          ctx2.beginPath();ctx2.arc(c*tpCS+tpCS/2,r*tpCS+tpCS/2,Math.max(2,tpCS*0.22),0,Math.PI*2);ctx2.fill();
-        }
-      });
-    }
+  // ── ENEMY WATERS (battle enemy view) ────────────────────────────
+  if(tpView==='enemy' && tpPhase!=='placement'){
+    Object.entries(tpEnemyMap).forEach(([key,val])=>{
+      const [r,c]=key.split(',').map(Number);
+      const px=c*tpCS, py=r*tpCS, sz=tpCS;
+      if(val==='hit'){
+        ctx2.save();
+        ctx2.shadowColor='#ff2200'; ctx2.shadowBlur=tpCS*1.5;
+        ctx2.fillStyle='#881100';
+        ctx2.fillRect(px+1,py+1,sz-2,sz-2);
+        ctx2.fillStyle='#ff3300';
+        ctx2.fillRect(px+1,py+1,sz-2,sz-2);
+        ctx2.restore();
+        ctx2.strokeStyle='#ff7755'; ctx2.lineWidth=Math.max(1,tpCS*0.18); ctx2.lineCap='round';
+        ctx2.beginPath();ctx2.moveTo(px+2,py+2);ctx2.lineTo(px+sz-2,py+sz-2);ctx2.stroke();
+        ctx2.beginPath();ctx2.moveTo(px+sz-2,py+2);ctx2.lineTo(px+2,py+sz-2);ctx2.stroke();
+      } else {
+        // Miss — dim sonar ping dot
+        ctx2.fillStyle='rgba(0,100,30,.6)';
+        ctx2.beginPath();ctx2.arc(px+sz/2,py+sz/2,Math.max(1.5,sz*0.2),0,Math.PI*2);ctx2.fill();
+      }
+    });
   }
 
-  // ── Placement preview: held ship
+  // ── PLACEMENT PREVIEW ───────────────────────────────────────────
   if(tpPhase==='placement' && tpHeldType>=0 && tpHoverR!==null){
     const cells=tpRotateCells(TP_SHIPS[tpHeldType].base, tpHeldRot);
     const valid=tpCanPlace(cells, tpHoverR, tpHoverC);
-    ctx2.fillStyle=valid?'rgba(100,255,150,.55)':'rgba(255,60,60,.45)';
     cells.forEach(([dr,dc])=>{
       const r=tpHoverR+dr, c=tpHoverC+dc;
-      if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS) ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
-    });
-    // Outline
-    ctx2.strokeStyle=valid?'#00ff88':'#ff4444';ctx2.lineWidth=1.5;
-    cells.forEach(([dr,dc])=>{
-      const r=tpHoverR+dr,c=tpHoverC+dc;
-      if(r>=0&&r<TPROWS&&c>=0&&c<TPCOLS) ctx2.strokeRect(c*tpCS+.75,r*tpCS+.75,tpCS-1.5,tpCS-1.5);
+      if(r<0||r>=TPROWS||c<0||c>=TPCOLS) return;
+      ctx2.save();
+      if(valid){ ctx2.shadowColor='#00ff88'; ctx2.shadowBlur=tpCS; ctx2.fillStyle='rgba(0,255,100,.45)'; }
+      else      { ctx2.shadowColor='#ff2200'; ctx2.shadowBlur=tpCS; ctx2.fillStyle='rgba(255,40,0,.38)'; }
+      ctx2.fillRect(c*tpCS+1,r*tpCS+1,tpCS-2,tpCS-2);
+      ctx2.restore();
+      ctx2.strokeStyle=valid?'#00ff88':'#ff3300'; ctx2.lineWidth=1;
+      ctx2.strokeRect(c*tpCS+.5,r*tpCS+.5,tpCS-1,tpCS-1);
     });
   }
-
-  // ── Crosshair on enemy view hover (touch: skip)
-  // handled in mouse move
 
   tpUpdateStatus();
 }
@@ -565,11 +660,20 @@ function tpBuildSidebar(){
     const pc=document.createElement('canvas');
     pc.width=maxC*pxSz; pc.height=maxR*pxSz; pc.className='tp-ship-preview';
     const pctx=pc.getContext('2d');
-    pctx.fillStyle=tpPlaced[i]?'#555':TP_COLORS[i];
-    cells.forEach(([r,c])=>pctx.fillRect(c*pxSz+1,r*pxSz+1,pxSz-2,pxSz-2));
     if(tpPlaced[i]){
-      pctx.fillStyle='rgba(0,200,100,.7)';pctx.font=`${pxSz*maxR*.7}px serif`;pctx.textAlign='center';pctx.textBaseline='middle';
+      pctx.fillStyle='#002800';
+      cells.forEach(([r,c])=>pctx.fillRect(c*pxSz+1,r*pxSz+1,pxSz-2,pxSz-2));
+      pctx.fillStyle='#00aa33'; pctx.font=`bold ${Math.floor(pxSz*maxR*.85)}px monospace`;
+      pctx.textAlign='center'; pctx.textBaseline='middle';
       pctx.fillText('✓',pc.width/2,pc.height/2);
+    } else if(tpHeldType===i){
+      // Selected — bright green glow
+      pctx.shadowColor='#00ff41'; pctx.shadowBlur=4;
+      pctx.fillStyle='#00ff41';
+      cells.forEach(([r,c])=>pctx.fillRect(c*pxSz+1,r*pxSz+1,pxSz-2,pxSz-2));
+    } else {
+      pctx.fillStyle='rgba(0,200,60,.55)';
+      cells.forEach(([r,c])=>pctx.fillRect(c*pxSz+1,r*pxSz+1,pxSz-2,pxSz-2));
     }
 
     const nm=document.createElement('div');nm.className='tp-ship-name';nm.textContent=ship.name;
@@ -683,8 +787,8 @@ function tpShowGameOver(iWon){
   tpPhase='gameover';
   const go=document.getElementById('tp-gameover');
   document.getElementById('tp-gameover-msg').innerHTML=iWon
-    ? '🎉 Victory!<br><small style="font-size:.6em;opacity:.7">All enemy ships sunk!</small>'
-    : '💥 Defeated!<br><small style="font-size:.6em;opacity:.7">Your fleet was sunk!</small>';
+    ? '[ MISSION COMPLETE ]<br><small style="font-size:.55em;opacity:.6;letter-spacing:.1em">ALL ENEMY VESSELS NEUTRALISED</small>'
+    : '[ MISSION FAILED ]<br><small style="font-size:.55em;opacity:.6;letter-spacing:.1em">FLEET DESTROYED</small>';
   go.style.display='flex';
   tpUpdateStatus();
 }
@@ -718,18 +822,19 @@ function tpSetView(v){
 }
 
 function tpUpdateStatus(){
+  const el=document.getElementById('tp-status-txt');
   if(tpPhase==='placement'){
     const n=tpPlaced.filter(Boolean).length;
-    document.getElementById('tp-status-txt').textContent=`Place your ships (${n}/6 placed)`;
+    el.innerHTML=`Deploy fleet &nbsp;<span style="color:#006622">[${n}/6]</span>`;
     return;
   }
   if(tpPhase==='waiting'||!tpIMReady||!tpTheyReady){
-    document.getElementById('tp-status-txt').textContent='Waiting for opponent…'; return;
+    el.innerHTML='<span style="color:#006622">Waiting for opponent</span><span class="tp-blink">_</span>'; return;
   }
   if(tpPhase==='gameover') return;
-  document.getElementById('tp-status-txt').innerHTML=tpMyTurn
-    ?'<span style="color:#f9ca24">🎯 Your turn — tap to fire!</span>'
-    :'<span style="opacity:.6">⏳ Waiting for their shot…</span>';
+  el.innerHTML=tpMyTurn
+    ?'<span style="color:#00ff41;text-shadow:0 0 8px #00ff41">◎ Select target — fire!</span><span class="tp-blink" style="color:#00ff41"> _</span>'
+    :'<span style="color:#006622">Incoming transmission</span><span class="tp-blink" style="color:#006622"> _</span>';
 }
 
 function tpReset(broadcast){
