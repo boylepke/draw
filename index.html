@@ -463,6 +463,8 @@ let tpMyFleet=[];
 let tpMyGrid={};
 // Enemy knowledge: 'r,c' → 'hit'|'miss'
 let tpEnemyMap={};
+// Opponent's shots on MY grid: 'r,c' → 'hit'|'miss'
+let tpEnemyShots={};
 // How many of each enemy ship is fully destroyed
 let tpEnemyShipsLeft=6;
 
@@ -528,25 +530,22 @@ function tpRedraw(){
 
   // ── MY FLEET (placement + mine view) ───────────────────────────
   if(tpView==='mine' || tpPhase==='placement'){
-    tpMyFleet.forEach(ship=>{
-      ship.cells.forEach(([r,c])=>{
-        const key=`${r},${c}`;
-        const isHit=ship.hitSet.has(key);
-        const px=c*tpCS, py=r*tpCS, sz=tpCS;
+    tpMyFleet.forEach(function(ship){
+      ship.cells.forEach(function(cell){
+        var r=cell[0],c=cell[1];
+        var key=r+','+c;
+        var isHit=ship.hitSet.has(key);
+        var px=c*tpCS, py=r*tpCS, sz=tpCS;
         if(isHit){
-          // Hit ship cell — red glow
           ctx2.save();
           ctx2.shadowColor='#ff3300'; ctx2.shadowBlur=tpCS*1.2;
           ctx2.fillStyle='#cc2200';
           ctx2.fillRect(px+1,py+1,sz-2,sz-2);
           ctx2.restore();
-          // X mark
-          ctx2.strokeStyle='#ff6644'; ctx2.lineWidth=Math.max(1,tpCS*0.18);
-          ctx2.lineCap='round';
+          ctx2.strokeStyle='#ff6644'; ctx2.lineWidth=Math.max(1,tpCS*0.18); ctx2.lineCap='round';
           ctx2.beginPath();ctx2.moveTo(px+2,py+2);ctx2.lineTo(px+sz-2,py+sz-2);ctx2.stroke();
           ctx2.beginPath();ctx2.moveTo(px+sz-2,py+2);ctx2.lineTo(px+2,py+sz-2);ctx2.stroke();
         } else {
-          // Intact ship cell — bright phosphor green
           ctx2.save();
           ctx2.shadowColor='#00ff41'; ctx2.shadowBlur=tpCS*0.8;
           ctx2.fillStyle='#003a00';
@@ -557,6 +556,19 @@ function tpRedraw(){
         }
       });
     });
+    // Opponent's missed shots on my grid — dim red dot
+    if(tpPhase==='battle'||tpPhase==='gameover'){
+      Object.keys(tpEnemyShots).forEach(function(key){
+        if(tpEnemyShots[key]==='miss'){
+          var parts=key.split(',');
+          var r=parseInt(parts[0]),c=parseInt(parts[1]);
+          ctx2.fillStyle='rgba(180,0,0,.35)';
+          ctx2.beginPath();
+          ctx2.arc(c*tpCS+tpCS/2,r*tpCS+tpCS/2,Math.max(1.5,tpCS*0.18),0,Math.PI*2);
+          ctx2.fill();
+        }
+      });
+    }
   }
 
   // ── ENEMY WATERS (battle enemy view) ────────────────────────────
@@ -825,21 +837,22 @@ function tpFire(r,c){
 }
 
 function tpReceiveFire(r,c){
-  // Check my fleet
-  const key=`${r},${c}`;
+  const key=r+','+c;
   const idx=tpMyGrid[key];
-  let hit=false, destroyed=false, remaining=tpMyFleet.filter(s=>!s.destroyed).length;
+  let hit=false, destroyed=false;
   if(idx!==undefined){
     hit=true;
     const ship=tpMyFleet[idx];
     ship.hitSet.add(key);
-    if(ship.cells.every(([sr,sc])=>ship.hitSet.has(`${sr},${sc}`))){
-      ship.destroyed=true; destroyed=true; remaining--;
+    if(ship.cells.every(function(sc){return ship.hitSet.has(sc[0]+','+sc[1]);})){
+      ship.destroyed=true; destroyed=true;
     }
   }
-  const gameOver = tpMyFleet.every(s=>s.destroyed);
-  const destroyedCells = (destroyed && !gameOver) ? tpMyFleet[idx]?.cells : (destroyed ? tpMyFleet[idx]?.cells : null);
-  send({type:'tp_result', r, c, hit, destroyed, gameOver, destroyedCells: destroyed ? tpMyFleet[idx]?.cells ?? null : null});
+  // Record opponent's shot on my grid for display in mine view
+  tpEnemyShots[key]=hit?'hit':'miss';
+  const gameOver=tpMyFleet.every(function(s){return s.destroyed;});
+  const destroyedCells=destroyed?tpMyFleet[idx].cells:null;
+  send({type:'tp_result',r:r,c:c,hit:hit,destroyed:destroyed,gameOver:gameOver,destroyedCells:destroyedCells});
   tpMyTurn=true;
   if(activeTab==='torpedo') tpRedraw();
   tpUpdateStatus();
@@ -922,12 +935,13 @@ function tpUpdateStatus(){
 
 function tpReset(broadcast){
   tpPhase='placement'; tpMyTurn=false; tpIMReady=false; tpTheyReady=false;
-  tpView='enemy'; tpMyFleet=[]; tpMyGrid={}; tpEnemyMap={};
+  tpView='enemy'; tpMyFleet=[]; tpMyGrid={}; tpEnemyMap={}; tpEnemyShots={};
   tpEnemyShipsLeft=6; tpPlaced=Array(6).fill(false);
+  tpExplosions=[]; tpAnimating=false;
   tpHeldType=-1; tpHeldRot=0; tpHoverR=null; tpHoverC=null;
   document.getElementById('tp-gameover').style.display='none';
   document.getElementById('tp-sidebar').style.display='flex';
-  ['tp-btn-enemy','tp-btn-mine'].forEach(id=>document.getElementById(id).style.display='none');
+  ['tp-btn-enemy','tp-btn-mine'].forEach(function(id){document.getElementById(id).style.display='none';});
   document.getElementById('tp-ready-btn').style.display='none';
   tpBuildSidebar(); tpRedraw();
   if(broadcast) send({type:'tp_reset'});
@@ -953,6 +967,7 @@ function startGame(host){
   xoNextFirst=1; xoMyTurn=host;
   // Torpedo init
   tpExplosions=[]; tpAnimating=false;
+  tpEnemyShots={};
   tpPlaced=Array(6).fill(false);
   tpBuildSidebar();
   resize(); drawPaper(); xoRedraw(); xoUpdateStatus(); tpRedraw();
