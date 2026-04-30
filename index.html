@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Draw Together</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; touch-action:none; }
+body { font-family:'Nunito','Arial Rounded MT Bold',Arial,sans-serif; background:#f0ebe0; }
+
+canvas { position:fixed; left:0; display:block; }
+
+#hud {
+  position:fixed; top:0; left:0; right:0; height:46px; z-index:10;
+  display:none; align-items:center; justify-content:space-between; padding:0 14px;
+  background:rgba(28,20,55,.94); backdrop-filter:blur(12px);
+  border-bottom:1.5px solid rgba(255,255,255,.13);
+}
+.ptag {
+  font-size:.78rem; font-weight:800; color:#fff; padding:5px 14px;
+  border-radius:20px; letter-spacing:.04em;
+}
+#hud-title { font-size:.8rem; font-weight:700; color:rgba(255,255,255,.4); }
+
+#toolbar {
+  position:fixed; bottom:0; left:0; right:0; z-index:10;
+  background:rgba(22,16,50,.96); backdrop-filter:blur(14px);
+  border-top:1.5px solid rgba(255,255,255,.12);
+  padding:9px 10px 13px; display:none; flex-direction:column; gap:8px;
+}
+.trow { display:flex; align-items:center; gap:7px; overflow-x:auto; padding-bottom:1px; flex-wrap:nowrap; }
+.trow::-webkit-scrollbar { display:none; }
+
+.cswatch {
+  width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  border:3px solid transparent; cursor:pointer; transition:transform .1s;
+}
+.cswatch.sel { border-color:#fff; transform:scale(1.3); box-shadow:0 0 8px rgba(255,255,255,.5); }
+
+.szbtn {
+  border-radius:50%; flex-shrink:0; cursor:pointer; border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center;
+  transition:transform .1s;
+}
+.szbtn.sel { border-color:#fff; background:rgba(255,255,255,.28); }
+
+.tbtn {
+  background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.2);
+  color:#fff; border-radius:11px; padding:6px 12px; font-size:.8rem; font-weight:700;
+  cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0;
+  transition:background .1s; user-select:none;
+}
+.tbtn.sel { background:rgba(255,255,255,.28); border-color:#fff; }
+.tbtn:active { transform:scale(.93); }
+
+.stamp {
+  font-size:1.45rem; cursor:pointer; flex-shrink:0; line-height:1;
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  border-radius:10px; background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.14);
+  transition:transform .1s; user-select:none;
+}
+.stamp.sel { background:rgba(255,255,255,.28); border-color:#fff; }
+.stamp:active { transform:scale(.85); }
+
+.dv { width:1.5px; height:26px; background:rgba(255,255,255,.16); flex-shrink:0; }
+
+.clrbtn {
+  background:linear-gradient(135deg,#ff4757,#c0392b); border:none;
+  color:#fff; border-radius:11px; padding:6px 14px; font-size:.8rem; font-weight:800;
+  cursor:pointer; font-family:inherit; flex-shrink:0; user-select:none;
+}
+.clrbtn:active { transform:scale(.93); }
+
+/* Lobby */
+#lobby {
+  position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:clamp(14px,3.5vw,26px); padding:20px;
+  background:linear-gradient(145deg,#1a0d3a,#0d1f40,#0d1a28);
+}
+.title { font-size:clamp(2.2rem,8vw,4.5rem); font-weight:900; color:#fff; text-align:center; }
+.glass {
+  background:rgba(255,255,255,.1); backdrop-filter:blur(18px);
+  border:1.5px solid rgba(255,255,255,.2); border-radius:26px;
+  padding:clamp(18px,4vw,32px) clamp(22px,5vw,42px);
+  display:flex; flex-direction:column; align-items:center; gap:clamp(12px,2.5vw,18px);
+  width:min(90vw,390px);
+}
+.lbtn {
+  width:100%; padding:clamp(14px,3.5vw,20px); font-size:clamp(1.05rem,3.8vw,1.35rem);
+  font-weight:800; border:none; border-radius:16px; cursor:pointer; font-family:inherit;
+  box-shadow:0 5px 18px rgba(0,0,0,.35); transition:transform .1s;
+}
+.lbtn:active { transform:scale(.95); }
+.lbtn-host { background:linear-gradient(135deg,#ffbe3b,#ff6a00); color:#fff; }
+.lbtn-join { background:linear-gradient(135deg,#7c5cfc,#d63aec); color:#fff; }
+.lbtn-go   { background:linear-gradient(135deg,#11d68a,#0088cc); color:#fff; }
+.code-big { font-size:clamp(3rem,14vw,5.5rem); font-weight:900; letter-spacing:.18em; color:#ffe066; text-align:center; line-height:1.1; }
+.sub { font-size:clamp(.8rem,2.8vw,1rem); color:rgba(255,255,255,.58); text-align:center; }
+input[type=text] {
+  width:100%; font-size:clamp(2rem,11vw,3.5rem); text-align:center; font-weight:900;
+  letter-spacing:.22em; padding:12px 10px; border-radius:14px;
+  border:2px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12);
+  color:#fff; outline:none; font-family:inherit; caret-color:#ffe066;
+}
+input[type=text]::placeholder { opacity:.28; }
+#smsg { color:rgba(255,255,255,.55); font-size:.9rem; text-align:center; min-height:1.3em; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="ptag" id="ptag-me">✏️ You</div>
+  <div id="hud-title">Draw Together</div>
+  <div class="ptag" id="ptag-them">✏️ Them</div>
+</div>
+
+<div id="toolbar">
+  <div class="trow" id="row-colors"></div>
+  <div class="trow" id="row-tools"></div>
+</div>
+
+<div id="lobby">
+  <div class="title">🎨 Draw Together</div>
+  <div class="glass" id="card">
+    <button class="lbtn lbtn-host" id="btn-host">🏠 Host Game</button>
+    <button class="lbtn lbtn-join" id="btn-join">📲 Join Game</button>
+  </div>
+  <div id="smsg"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+<script>
+// ─── Layout constants ────────────────────────────────────────────────────────
+const HUD_H = 46;
+const TB_H  = 96;
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W, CH; // canvas width and height
+
+function resize() {
+  W  = canvas.width  = window.innerWidth;
+  CH = canvas.height = window.innerHeight - (gameActive ? HUD_H + TB_H : 0);
+  canvas.style.top = gameActive ? HUD_H + 'px' : '0';
+  if (gameActive) redrawAll();
+}
+window.addEventListener('resize', resize);
+
+// ─── Drawing palette ─────────────────────────────────────────────────────────
+const PALETTE = [
+  '#111111','#ffffff','#ff4444','#ff8c00','#ffd700',
+  '#44cc44','#00bcd4','#2196f3','#9c27b0','#e91e8c',
+  '#795548','#607d8b'
+];
+const SIZES   = [6, 16, 34];
+const STAMPS  = ['⭐','❤️','🌈','🌸','🐱','🦋','🎉','🍦','🐶','🌟'];
+const PAPER   = '#f8f3ea';
+
+let penColor  = '#2196f3'; // default blue
+let penSize   = SIZES[1];
+let eraserOn  = false;
+let stampMode = null;
+
+// ─── Ops log (for redraw) ─────────────────────────────────────────────────────
+let ops = []; // {type:'seg'|'stamp'|'clear', ...}
+
+// ─── Network ─────────────────────────────────────────────────────────────────
+let peer, conn, gameActive = false;
+
+function send(msg) {
+  try { conn && conn.open && conn.send(JSON.stringify(msg)); } catch(e) {}
+}
+function onMessage(raw) {
+  let msg; try { msg = JSON.parse(raw); } catch(e) { return; }
+  if      (msg.type === 'seg')   applySeg(msg);
+  else if (msg.type === 'stamp') applyStamp(msg);
+  else if (msg.type === 'clear') applyClear();
+}
+
+// ─── Drawing operations ───────────────────────────────────────────────────────
+const PAPER_DOTS_SPACING = 30;
+
+function drawPaper() {
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(0, 0, W, CH);
+  ctx.fillStyle = 'rgba(0,0,0,.05)';
+  for (let x = PAPER_DOTS_SPACING; x < W;  x += PAPER_DOTS_SPACING)
+  for (let y = PAPER_DOTS_SPACING; y < CH; y += PAPER_DOTS_SPACING) {
+    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function strokeSeg(x1, y1, x2, y2, color, size, erase) {
+  ctx.save();
+  ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (erase) {
+    ctx.strokeStyle = PAPER; // paint over with paper color
+  } else {
+    ctx.strokeStyle = color;
+  }
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.restore();
+}
+
+function strokeStamp(x, y, emoji, size) {
+  ctx.save();
+  ctx.font = `${size}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, x, y);
+  ctx.restore();
+}
+
+function applySeg(op) {
+  ops.push(op);
+  strokeSeg(op.x1*W, op.y1*CH, op.x2*W, op.y2*CH, op.color, op.size, op.erase);
+}
+
+function applyStamp(op) {
+  ops.push(op);
+  strokeStamp(op.x*W, op.y*CH, op.emoji, op.sz);
+}
+
+function applyClear() {
+  ops = [];
+  ctx.clearRect(0, 0, W, CH);
+  drawPaper();
+}
+
+function redrawAll() {
+  ctx.clearRect(0, 0, W, CH);
+  drawPaper();
+  ops.forEach(op => {
+    if (op.type === 'seg')   strokeSeg(op.x1*W,op.y1*CH,op.x2*W,op.y2*CH,op.color,op.size,op.erase);
+    if (op.type === 'stamp') strokeStamp(op.x*W,op.y*CH,op.emoji,op.sz);
+  });
+}
+
+// ─── Touch → canvas coordinate transform ─────────────────────────────────────
+function cy(clientY) { return clientY - HUD_H; }
+function inCanvas(clientY) { return clientY >= HUD_H && clientY <= HUD_H + CH; }
+
+let lastPt = null, primaryTouchId = null;
+
+function pointerDown(cx, clientY) {
+  if (!gameActive || !inCanvas(clientY)) return;
+  const y = cy(clientY);
+  if (stampMode) {
+    const op = { type:'stamp', x:cx/W, y:y/CH, emoji:stampMode, sz: penSize * 2.5 };
+    applyStamp(op); send(op);
+    return;
+  }
+  lastPt = { x:cx, y };
+}
+
+function pointerMove(cx, clientY) {
+  if (!gameActive || !lastPt || stampMode || !inCanvas(clientY)) return;
+  const y = cy(clientY);
+  const op = {
+    type:'seg',
+    x1: lastPt.x/W, y1: lastPt.y/CH,
+    x2: cx/W,       y2: y/CH,
+    color: penColor,
+    size:  eraserOn ? penSize * 2.8 : penSize,
+    erase: eraserOn
+  };
+  applySeg(op); send(op);
+  lastPt = { x:cx, y };
+}
+
+function pointerUp() { lastPt = null; primaryTouchId = null; }
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (primaryTouchId === null) {
+    const t = e.changedTouches[0];
+    primaryTouchId = t.identifier;
+    pointerDown(t.clientX, t.clientY);
+  }
+}, { passive:false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === primaryTouchId) { pointerMove(t.clientX, t.clientY); break; }
+  }
+}, { passive:false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === primaryTouchId) { pointerUp(); break; }
+  }
+}, { passive:false });
+
+canvas.addEventListener('mousedown', e => pointerDown(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => { if (e.buttons) pointerMove(e.clientX, e.clientY); });
+canvas.addEventListener('mouseup', pointerUp);
+
+// ─── Toolbar builder ──────────────────────────────────────────────────────────
+function buildToolbar() {
+  // Row 1: colors
+  const cr = document.getElementById('row-colors');
+  PALETTE.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cswatch' + (c === penColor ? ' sel' : '');
+    el.style.background = c;
+    if (c === '#ffffff') el.style.boxShadow = 'inset 0 0 0 1.5px rgba(0,0,0,.25)';
+    el.addEventListener('pointerdown', () => {
+      penColor = c; eraserOn = false; stampMode = null;
+      cr.querySelectorAll('.cswatch').forEach(e => e.classList.remove('sel'));
+      el.classList.add('sel');
+      syncToolState();
+    });
+    cr.appendChild(el);
+  });
+
+  // Row 2: sizes | eraser | stamps | clear
+  const tr = document.getElementById('row-tools');
+
+  // Sizes
+  SIZES.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'szbtn' + (s === penSize ? ' sel' : '');
+    const d = s * 0.65 + 16;
+    el.style.cssText = `width:${d}px;height:${d}px;`;
+    el.innerHTML = `<div style="width:${Math.max(3,s*.5)}px;height:${Math.max(3,s*.5)}px;border-radius:50%;background:rgba(255,255,255,.85)"></div>`;
+    el.addEventListener('pointerdown', () => {
+      penSize = s;
+      tr.querySelectorAll('.szbtn').forEach(e => e.classList.remove('sel'));
+      el.classList.add('sel');
+    });
+    tr.appendChild(el);
+  });
+
+  const dv1 = document.createElement('div'); dv1.className='dv'; tr.appendChild(dv1);
+
+  // Eraser
+  const erBtn = document.createElement('button');
+  erBtn.className='tbtn'; erBtn.id='eraser-btn'; erBtn.textContent='🧹 Erase';
+  erBtn.addEventListener('pointerdown', () => {
+    eraserOn = !eraserOn; stampMode = null; syncToolState();
+  });
+  tr.appendChild(erBtn);
+
+  const dv2 = document.createElement('div'); dv2.className='dv'; tr.appendChild(dv2);
+
+  // Stamps
+  STAMPS.forEach(em => {
+    const el = document.createElement('div');
+    el.className = 'stamp'; el.textContent = em;
+    el.addEventListener('pointerdown', () => {
+      stampMode = stampMode === em ? null : em;
+      eraserOn = false; syncToolState();
+      el.classList.toggle('sel', stampMode === em);
+    });
+    tr.appendChild(el);
+  });
+
+  const dv3 = document.createElement('div'); dv3.className='dv'; tr.appendChild(dv3);
+
+  // Clear
+  const clrBtn = document.createElement('button');
+  clrBtn.className='clrbtn'; clrBtn.textContent='🗑️ Clear';
+  clrBtn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    if (confirm('Clear the whole drawing? 🎨')) {
+      applyClear(); send({ type:'clear' });
+    }
+  });
+  tr.appendChild(clrBtn);
+}
+
+function syncToolState() {
+  const erBtn = document.getElementById('eraser-btn');
+  if (erBtn) erBtn.classList.toggle('sel', eraserOn);
+  document.querySelectorAll('.stamp').forEach(el => {
+    el.classList.toggle('sel', el.textContent === stampMode);
+  });
+}
+
+// ─── Game start ───────────────────────────────────────────────────────────────
+function startGame(host) {
+  gameActive = true;
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('toolbar').style.display = 'flex';
+  penColor = host ? '#ff4444' : '#2196f3'; // host=red, joiner=blue
+  const tagColor = host ? '#ff6a00' : '#7c5cfc';
+  document.getElementById('ptag-me').style.background = tagColor;
+  buildToolbar();
+  resize();
+  drawPaper();
+}
+
+// ─── Lobby ────────────────────────────────────────────────────────────────────
+function setStatus(t) { document.getElementById('smsg').textContent = t; }
+
+document.getElementById('btn-host').onclick = () => {
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  setStatus('Connecting...');
+  peer = new Peer('draw2-' + code, { debug:0 });
+  peer.on('open', () => {
+    setStatus('');
+    document.getElementById('card').innerHTML = `
+      <div class="sub">Tell the other player this code:</div>
+      <div class="code-big">${code}</div>
+      <div class="sub">Waiting for them to join... 🕐</div>
+    `;
+  });
+  peer.on('connection', c => {
+    conn = c;
+    conn.on('open', () => startGame(true));
+    conn.on('data', d => onMessage(d));
+  });
+  peer.on('error', e => setStatus('Error: ' + e.type + '. Try refreshing.'));
+};
+
+document.getElementById('btn-join').onclick = () => {
+  document.getElementById('card').innerHTML = `
+    <div class="sub">Enter the 4-digit code from the host:</div>
+    <input type="text" id="jc" inputmode="numeric" maxlength="4" placeholder="1234" autocomplete="off">
+    <button class="lbtn lbtn-go" id="btn-go">Connect 🚀</button>
+  `;
+  const doJoin = () => {
+    const code = document.getElementById('jc').value.trim();
+    if (code.length < 4) { setStatus('Enter all 4 digits!'); return; }
+    setStatus('Connecting...');
+    peer = new Peer({ debug:0 });
+    peer.on('open', () => {
+      conn = peer.connect('draw2-' + code, { reliable:true });
+      conn.on('open',  () => startGame(false));
+      conn.on('data',  d  => onMessage(d));
+    });
+    peer.on('error', e => setStatus('Could not connect — check the code.'));
+  };
+  document.getElementById('btn-go').onclick = doJoin;
+  document.getElementById('jc').onkeydown = e => { if (e.key === 'Enter') doJoin(); };
+  setTimeout(() => { const el = document.getElementById('jc'); if (el) el.focus(); }, 80);
+};
+
+// Initial sizing
+resize();
+</script>
+</body>
+</html>
