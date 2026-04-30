@@ -49,8 +49,6 @@ canvas { position:fixed; left:0; display:block; }
 .xo-sep   { font-size:1rem; color:rgba(255,255,255,.18); }
 #xo-status { font-size:clamp(.85rem,3.6vw,1.1rem); font-weight:800; color:#fff; text-align:center; min-height:1.4em; padding:0 8px; }
 #xo-canvas { display:block; border-radius:8px; touch-action:none; }
-#xo-again { background:linear-gradient(135deg,#11d68a,#0088cc); border:none; color:#fff; font-family:inherit; font-size:clamp(.9rem,3.5vw,1.1rem); font-weight:800; padding:clamp(10px,2.5vw,14px) clamp(24px,7vw,44px); border-radius:16px; cursor:pointer; box-shadow:0 5px 18px rgba(0,0,0,.4); display:none; }
-#xo-again:active { transform:scale(.95); }
 
 /* ── Torpedo panel — RADAR UI ── */
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
@@ -214,8 +212,13 @@ input[type=text]::placeholder { opacity:.28; }
     <div class="xo-sb"><div class="xo-sname" id="xo-name-them">THEM</div><div class="xo-snum" id="xo-score-them">0</div></div>
   </div>
   <div id="xo-status">…</div>
-  <canvas id="xo-canvas"></canvas>
-  <button id="xo-again" onclick="xoReset(true)">Play again 🔁</button>
+  <div style="position:relative;display:inline-block;">
+    <canvas id="xo-canvas"></canvas>
+    <div id="xo-overlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.72);border-radius:8px;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+      <div id="xo-overlay-msg" style="font-size:clamp(1.1rem,5vw,1.7rem);font-weight:900;color:#fff;text-align:center;padding:0 12px;text-shadow:0 2px 12px rgba(0,0,0,.6);"></div>
+      <button onclick="xoReset(true)" style="background:linear-gradient(135deg,#11d68a,#0088cc);border:none;color:#fff;font-family:inherit;font-size:clamp(.95rem,4vw,1.2rem);font-weight:800;padding:13px 36px;border-radius:16px;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.4);">New game 🔁</button>
+    </div>
+  </div>
 </div>
 
 <div id="tp-panel">
@@ -317,7 +320,7 @@ function onMessage(raw) {
 //  DRAWING TAB
 // ════════════════════════════════════════════════════════════════
 const PALETTE=['#111111','#ffffff','#ff4444','#ff8c00','#ffd700','#44cc44','#00bcd4','#2196f3','#9c27b0','#e91e8c','#795548','#607d8b'];
-const SIZES=[6,16,34], STAMPS=['⭐','❤️','🌈','🌸','🐱','🦋','🎉','🍦','🐶','🌟'], PAPER='#f8f3ea';
+const SIZES=[6,16,34], STAMPS=['❤️','🐱','🐶','🌈','🐰','🦄','⭐','🦋'], PAPER='#f8f3ea';
 let penColor='#2196f3', penSize=SIZES[1], eraserOn=false, stampMode=null, ops=[];
 
 function drawPaper(){ ctx.fillStyle=PAPER;ctx.fillRect(0,0,W,CH);ctx.fillStyle='rgba(0,0,0,.05)';for(let x=30;x<W;x+=30)for(let y=30;y<CH;y+=30){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();} }
@@ -330,7 +333,7 @@ function redrawAll()   { ctx.clearRect(0,0,W,CH);drawPaper();ops.forEach(op=>{ i
 
 let lastPt=null,primId=null;
 function inDraw(y){ return activeTab==='draw'&&y>=HUD_H&&y<=HUD_H+CH; }
-function pdDown(cx,cy){ if(!gameActive||!inDraw(cy))return;const y=cy-HUD_H;if(stampMode){const op={type:'stamp',x:cx/W,y:y/CH,emoji:stampMode,sz:penSize*2.5};applyStamp(op);send(op);return;}lastPt={x:cx,y}; }
+function pdDown(cx,cy){ if(!gameActive||!inDraw(cy))return;const y=cy-HUD_H;if(stampMode){const op={type:'stamp',x:cx/W,y:y/CH,emoji:stampMode,sz:72};applyStamp(op);send(op);return;}lastPt={x:cx,y}; }
 function pdMove(cx,cy){ if(!gameActive||!lastPt||stampMode||!inDraw(cy))return;const y=cy-HUD_H;const op={type:'seg',x1:lastPt.x/W,y1:lastPt.y/CH,x2:cx/W,y2:y/CH,color:penColor,size:eraserOn?penSize*2.8:penSize,erase:eraserOn};applySeg(op);send(op);lastPt={x:cx,y}; }
 function pdUp(){ lastPt=null;primId=null; }
 drawCanvas.addEventListener('touchstart',e=>{e.preventDefault();if(primId===null){const t=e.changedTouches[0];primId=t.identifier;pdDown(t.clientX,t.clientY);}},{passive:false});
@@ -411,16 +414,33 @@ function xoApplyMove(cell,isMine){
   if(xoGameOver||xoBoard[cell])return;
   const player=isMine?mySymbolXO():(amHost?2:1);xoBoard[cell]=player;
   const win=checkWin(xoBoard,cell,player);
-  if(win){xoWinCells=win;xoGameOver=true;xoMyTurn=false;
+  if(win){
+    xoWinCells=win;xoGameOver=true;xoMyTurn=false;
     if(isMine){xoScoreMe++;xoNextFirst=(amHost?2:1);}else{xoScoreThem++;xoNextFirst=(amHost?1:2);}
-    document.getElementById('xo-score-me').textContent=xoScoreMe;document.getElementById('xo-score-them').textContent=xoScoreThem;
-    const c=player===1?COL_X:COL_O;document.getElementById('xo-status').innerHTML=isMine?`<span style="color:${c}">🎉 You got 5 in a row!</span>`:`<span style="color:${c}">😅 They got 5 in a row!</span>`;
-    document.getElementById('xo-again').style.display='block';
-  } else if(xoBoard.every(v=>v)){xoGameOver=true;document.getElementById('xo-status').textContent="It's a draw! 🤝";document.getElementById('xo-again').style.display='block';}
-  else{xoMyTurn=!isMine;xoUpdateStatus();}
+    document.getElementById('xo-score-me').textContent=xoScoreMe;
+    document.getElementById('xo-score-them').textContent=xoScoreThem;
+    const c=player===1?COL_X:COL_O;
+    document.getElementById('xo-status').innerHTML=isMine?`<span style="color:${c}">🎉 5 in a row!</span>`:`<span style="color:${c}">😅 They got 5 in a row!</span>`;
+    const msg=isMine?'🎉 You win!':'😅 They win!';
+    xoShowOverlay(msg);
+  } else if(xoBoard.every(v=>v)){
+    xoGameOver=true;
+    document.getElementById('xo-status').textContent="It's a draw! 🤝";
+    xoShowOverlay("It's a draw! 🤝");
+  } else {xoMyTurn=!isMine;xoUpdateStatus();}
   xoRedraw();
 }
-function xoReset(broadcast){xoBoard=Array(GRID*GRID).fill(0);xoWinCells=[];xoGameOver=false;document.getElementById('xo-again').style.display='none';xoMyTurn=(xoNextFirst===mySymbolXO());xoUpdateStatus();xoRedraw();if(broadcast)send({type:'xo_reset'});}
+function xoShowOverlay(msg){
+  const ov=document.getElementById('xo-overlay');
+  document.getElementById('xo-overlay-msg').textContent=msg;
+  ov.style.display='flex';
+}
+function xoReset(broadcast){
+  xoBoard=Array(GRID*GRID).fill(0);xoWinCells=[];xoGameOver=false;
+  document.getElementById('xo-overlay').style.display='none';
+  xoMyTurn=(xoNextFirst===mySymbolXO());xoUpdateStatus();xoRedraw();
+  if(broadcast)send({type:'xo_reset'});
+}
 xoC.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];xoTap(t.clientX,t.clientY);},{passive:false});
 xoC.addEventListener('mousedown',e=>xoTap(e.clientX,e.clientY));
 function xoTap(cx,cy){if(!gameActive||!xoMyTurn||xoGameOver)return;const rect=xoC.getBoundingClientRect(),cs=xoC.width/GRID,col2=Math.floor((cx-rect.left)/cs),row2=Math.floor((cy-rect.top)/cs);if(col2<0||col2>=GRID||row2<0||row2>=GRID)return;const cell=row2*GRID+col2;if(xoBoard[cell])return;send({type:'xo_move',cell});xoApplyMove(cell,true);}
